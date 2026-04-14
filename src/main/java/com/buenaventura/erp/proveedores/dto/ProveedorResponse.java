@@ -11,6 +11,12 @@ public class ProveedorResponse {
     private String representante;
     private Boolean flgActivo;
 
+    // 👇 CAMPOS DE BANCO
+    private Integer idBanco;
+    private String nombreBanco;
+    private String cuentaBancaria;
+    private String cuentaInterbancaria;
+
     public ProveedorResponse() {
     }
 
@@ -76,5 +82,37 @@ public class ProveedorResponse {
 
     public void setFlgActivo(Boolean flgActivo) {
         this.flgActivo = flgActivo;
+    }
+
+    public Integer getIdBanco() {
+        return idBanco;
+    }
+
+    public void setIdBanco(Integer idBanco) {
+        this.idBanco = idBanco;
+    }
+
+    public String getNombreBanco() {
+        return nombreBanco;
+    }
+
+    public void setNombreBanco(String nombreBanco) {
+        this.nombreBanco = nombreBanco;
+    }
+
+    public String getCuentaBancaria() {
+        return cuentaBancaria;
+    }
+
+    public void setCuentaBancaria(String cuentaBancaria) {
+        this.cuentaBancaria = cuentaBancaria;
+    }
+
+    public String getCuentaInterbancaria() {
+        return cuentaInterbancaria;
+    }
+
+    public void setCuentaInterbancaria(String cuentaInterbancaria) {
+        this.cuentaInterbancaria = cuentaInterbancaria;
     }
 }
