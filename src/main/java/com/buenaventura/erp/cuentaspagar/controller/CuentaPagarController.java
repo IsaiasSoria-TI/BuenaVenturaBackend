@@ -1,8 +1,9 @@
 package com.buenaventura.erp.cuentaspagar.controller;
 
-import com.buenaventura.erp.cuentaspagar.dto.CuentaPagarDisponibleResponse;
+import com.buenaventura.erp.cuentaspagar.dto.CompraValidaResponse;
+import com.buenaventura.erp.cuentaspagar.dto.CuentaPagarDetalleCompraResponse;
 import com.buenaventura.erp.cuentaspagar.dto.CuentaPagarRequest;
-import com.buenaventura.erp.cuentaspagar.entity.CuentaPagar;
+import com.buenaventura.erp.cuentaspagar.dto.CuentaPagarResponse;
 import com.buenaventura.erp.cuentaspagar.service.CuentaPagarService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -11,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/cuentas-pagar")
+@RequestMapping("/api/cuentas-pagar")
 public class CuentaPagarController {
 
     private final CuentaPagarService cuentaPagarService;
@@ -21,28 +22,34 @@ public class CuentaPagarController {
     }
 
     @GetMapping
-    public ResponseEntity<List<CuentaPagar>> listar() {
+    public ResponseEntity<List<CuentaPagarResponse>> listar() {
         return ResponseEntity.ok(cuentaPagarService.listar());
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<CuentaPagar> obtenerPorId(@PathVariable Integer id) {
-        return ResponseEntity.ok(cuentaPagarService.obtenerPorId(id));
+    @GetMapping("/compras-validas")
+    public ResponseEntity<List<CompraValidaResponse>> listarComprasValidas() {
+        return ResponseEntity.ok(cuentaPagarService.listarComprasValidas());
     }
 
-    @GetMapping("/disponibles")
-    public ResponseEntity<List<CuentaPagarDisponibleResponse>> listarDisponibles() {
-        return ResponseEntity.ok(cuentaPagarService.listarDisponibles());
+    @GetMapping("/compra/{idCompras}")
+    public ResponseEntity<CuentaPagarDetalleCompraResponse> verDetalleCompra(
+            @PathVariable Integer idCompras
+    ) {
+        return ResponseEntity.ok(cuentaPagarService.verDetalleCompra(idCompras));
     }
 
     @PostMapping
-    public ResponseEntity<List<CuentaPagar>> registrar(@Valid @RequestBody CuentaPagarRequest request) {
+    public ResponseEntity<List<CuentaPagarResponse>> registrar(
+            @Valid @RequestBody CuentaPagarRequest request
+    ) {
         return ResponseEntity.ok(cuentaPagarService.registrar(request));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CuentaPagar> actualizar(@PathVariable Integer id,
-                                                  @Valid @RequestBody CuentaPagarRequest request) {
+    public ResponseEntity<CuentaPagarResponse> actualizar(
+            @PathVariable Integer id,
+            @Valid @RequestBody CuentaPagarRequest request
+    ) {
         return ResponseEntity.ok(cuentaPagarService.actualizar(id, request));
     }
 

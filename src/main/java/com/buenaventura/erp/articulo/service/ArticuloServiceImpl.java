@@ -6,6 +6,7 @@ import com.buenaventura.erp.articulo.entity.Articulo;
 import com.buenaventura.erp.articulo.repository.ArticuloRepository;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -30,7 +31,8 @@ public class ArticuloServiceImpl implements ArticuloService {
         Articulo articulo = new Articulo();
         articulo.setDescripcion(request.getDescripcion());
         articulo.setMedida(request.getMedida());
-        articulo.setStock(request.getStock());
+        articulo.setStock(request.getStock() == null ? BigDecimal.ZERO : request.getStock()
+        );
         articulo.setEstado(
                 request.getEstado() == null || request.getEstado().isBlank()
                         ? "Activo"

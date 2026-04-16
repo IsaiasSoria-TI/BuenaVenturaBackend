@@ -10,7 +10,7 @@ public class ProveedorRequest {
     private Integer idProveedor; // 👈 NECESARIO para actualizar
 
     @NotBlank(message = "El RUC es obligatorio")
-    @Size(min = 8, max = 15, message = "El RUC debe tener entre 8 y 15 caracteres")
+    @Pattern(regexp = "^[0-9]{11}$", message = "El RUC debe tener exactamente 11 dígitos")
     private String ruc;
 
     @NotBlank(message = "La razón social es obligatoria")

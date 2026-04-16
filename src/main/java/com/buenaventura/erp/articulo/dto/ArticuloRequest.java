@@ -14,7 +14,6 @@ public class ArticuloRequest {
     @NotBlank(message = "La medida es obligatoria")
     private String medida;
 
-    @NotNull(message = "El stock es obligatorio")
     @DecimalMin(value = "0.00", message = "El stock no puede ser negativo")
     private BigDecimal stock;
 

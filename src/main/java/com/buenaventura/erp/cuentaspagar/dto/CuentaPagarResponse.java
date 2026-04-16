@@ -15,7 +15,6 @@ public class CuentaPagarResponse {
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaActualizacion;
 
-    // Campos de apoyo para mostrar al usuario
     private String proveedor;
     private String ruc;
     private String articulo;

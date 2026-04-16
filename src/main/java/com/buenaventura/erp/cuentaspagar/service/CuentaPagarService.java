@@ -1,22 +1,23 @@
 package com.buenaventura.erp.cuentaspagar.service;
 
-import com.buenaventura.erp.cuentaspagar.dto.CuentaPagarDisponibleResponse;
+import com.buenaventura.erp.cuentaspagar.dto.CompraValidaResponse;
+import com.buenaventura.erp.cuentaspagar.dto.CuentaPagarDetalleCompraResponse;
 import com.buenaventura.erp.cuentaspagar.dto.CuentaPagarRequest;
-import com.buenaventura.erp.cuentaspagar.entity.CuentaPagar;
+import com.buenaventura.erp.cuentaspagar.dto.CuentaPagarResponse;
 
 import java.util.List;
 
 public interface CuentaPagarService {
 
-    List<CuentaPagar> listar();
+    List<CuentaPagarResponse> listar();
 
-    CuentaPagar obtenerPorId(Integer id);
+    List<CompraValidaResponse> listarComprasValidas();
 
-    List<CuentaPagarDisponibleResponse> listarDisponibles();
+    CuentaPagarDetalleCompraResponse verDetalleCompra(Integer idCompras);
 
-    List<CuentaPagar> registrar(CuentaPagarRequest request);
+    List<CuentaPagarResponse> registrar(CuentaPagarRequest request);
 
-    CuentaPagar actualizar(Integer id, CuentaPagarRequest request);
+    CuentaPagarResponse actualizar(Integer id, CuentaPagarRequest request);
 
     void eliminar(Integer id);
 }

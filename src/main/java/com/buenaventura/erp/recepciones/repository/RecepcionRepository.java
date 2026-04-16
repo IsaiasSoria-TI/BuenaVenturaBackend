@@ -4,6 +4,7 @@ import com.buenaventura.erp.recepciones.entity.Recepcion;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -18,10 +19,20 @@ public interface RecepcionRepository extends JpaRepository<Recepcion, Integer> {
             from Recepcion r
             where r.compra.idCompras = :idCompras
             """)
-    BigDecimal sumarRecibidoPorCompra(Integer idCompras);
+    BigDecimal sumarRecibidoPorCompra(@Param("idCompras") Integer idCompras);
 
-    List<Recepcion> findByCompraIdCompras(Integer idCompras);
-
-    @EntityGraph(attributePaths = {"compra", "compra.proveedor", "compra.articulo"})
-    List<Recepcion> findByEstadoAndCompraFlgActivoTrueOrderByFechaRecepcionDesc(String estado);
+    @EntityGraph(attributePaths = {
+            "compra",
+            "compra.proveedor",
+            "compra.articulo",
+            "compra.impuesto",
+            "compra.pago"
+    })
+    @Query("""
+            select r
+            from Recepcion r
+            where r.compra.idCompras = :idCompras
+            order by r.fechaRecepcion desc
+            """)
+    List<Recepcion> obtenerPorCompra(@Param("idCompras") Integer idCompras);
 }

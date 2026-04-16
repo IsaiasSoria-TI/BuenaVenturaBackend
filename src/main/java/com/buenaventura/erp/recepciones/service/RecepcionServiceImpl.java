@@ -66,7 +66,7 @@ public class RecepcionServiceImpl implements RecepcionService {
             compra.setFechaActualizacion(LocalDateTime.now());
             compraRepository.save(compra);
 
-            List<Recepcion> recepciones = recepcionRepository.findByCompraIdCompras(compra.getIdCompras());
+            List<Recepcion> recepciones = recepcionRepository.obtenerPorCompra(compra.getIdCompras());
             for (Recepcion r : recepciones) {
                 r.setEstado("Completo");
             }
