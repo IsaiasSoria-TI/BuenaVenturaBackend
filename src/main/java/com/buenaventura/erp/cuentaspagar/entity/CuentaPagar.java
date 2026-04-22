@@ -1,12 +1,15 @@
 package com.buenaventura.erp.cuentaspagar.entity;
 
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "tb_cuentas_pagar")
 public class CuentaPagar {
+
+    public static final String ESTADO_PENDIENTE = "Pendiente";
+    public static final String ESTADO_COMPLETA_PARCIAL = "Completa parcial";
+    public static final String ESTADO_COMPLETA = "Completa";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

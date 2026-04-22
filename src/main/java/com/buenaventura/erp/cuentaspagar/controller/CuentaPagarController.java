@@ -32,16 +32,12 @@ public class CuentaPagarController {
     }
 
     @GetMapping("/compra/{idCompras}")
-    public ResponseEntity<CuentaPagarDetalleCompraResponse> verDetalleCompra(
-            @PathVariable Integer idCompras
-    ) {
+    public ResponseEntity<CuentaPagarDetalleCompraResponse> verDetalleCompra(@PathVariable Integer idCompras) {
         return ResponseEntity.ok(cuentaPagarService.verDetalleCompra(idCompras));
     }
 
     @PostMapping
-    public ResponseEntity<List<CuentaPagarResponse>> registrar(
-            @Valid @RequestBody CuentaPagarRequest request
-    ) {
+    public ResponseEntity<List<CuentaPagarResponse>> registrar(@Valid @RequestBody CuentaPagarRequest request) {
         return ResponseEntity.ok(cuentaPagarService.registrar(request));
     }
 

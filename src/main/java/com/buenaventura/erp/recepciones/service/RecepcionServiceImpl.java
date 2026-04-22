@@ -16,6 +16,10 @@ import java.util.List;
 @Service
 public class RecepcionServiceImpl implements RecepcionService {
 
+    private static final String ESTADO_PENDIENTE = "Pendiente";
+    private static final String ESTADO_COMPLETA_PARCIAL = "Completa parcial";
+    private static final String ESTADO_COMPLETA = "Completa";
+
     private final RecepcionRepository recepcionRepository;
     private final CompraRepository compraRepository;
 
@@ -42,8 +46,12 @@ public class RecepcionServiceImpl implements RecepcionService {
             throw new RuntimeException("La compra está inactiva");
         }
 
-        if ("Completo".equalsIgnoreCase(compra.getEstado())) {
+        if (ESTADO_COMPLETA.equalsIgnoreCase(compra.getEstado())) {
             throw new RuntimeException("No se puede registrar recepción para una compra completa");
+        }
+
+        if (request.getRecibido() == null || request.getRecibido().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("El peso recibido debe ser mayor a cero");
         }
 
         BigDecimal totalRecibidoActual = recepcionRepository.sumarRecibidoPorCompra(compra.getIdCompras());
@@ -57,26 +65,33 @@ public class RecepcionServiceImpl implements RecepcionService {
         recepcion.setCompra(compra);
         recepcion.setRecibido(request.getRecibido());
         recepcion.setFechaRecepcion(LocalDateTime.now());
-        recepcion.setEstado("Pendiente");
+
+        if (nuevoTotal.compareTo(compra.getPeso()) == 0) {
+            recepcion.setEstado(ESTADO_COMPLETA);
+        } else {
+            recepcion.setEstado(ESTADO_COMPLETA_PARCIAL);
+        }
 
         Recepcion guardada = recepcionRepository.save(recepcion);
 
         if (nuevoTotal.compareTo(compra.getPeso()) == 0) {
-            compra.setEstado("Completo");
+            compra.setEstado(ESTADO_COMPLETA);
             compra.setFechaActualizacion(LocalDateTime.now());
             compraRepository.save(compra);
 
             List<Recepcion> recepciones = recepcionRepository.obtenerPorCompra(compra.getIdCompras());
             for (Recepcion r : recepciones) {
-                r.setEstado("Completo");
+                r.setEstado(ESTADO_COMPLETA);
             }
             recepcionRepository.saveAll(recepciones);
 
-            guardada.setEstado("Completo");
+            guardada.setEstado(ESTADO_COMPLETA);
         } else {
-            compra.setEstado("Pendiente");
+            compra.setEstado(ESTADO_COMPLETA_PARCIAL);
             compra.setFechaActualizacion(LocalDateTime.now());
             compraRepository.save(compra);
+
+            guardada.setEstado(ESTADO_COMPLETA_PARCIAL);
         }
 
         return toResponse(guardada);
@@ -86,7 +101,7 @@ public class RecepcionServiceImpl implements RecepcionService {
     public List<RecepcionResponse> listarComprasPendientes() {
         return compraRepository.findByFlgActivoTrueOrderByFechaComprasDesc()
                 .stream()
-                .filter(c -> "Pendiente".equalsIgnoreCase(c.getEstado()))
+                .filter(c -> !ESTADO_COMPLETA.equalsIgnoreCase(c.getEstado()))
                 .map(this::toCompraPendienteResponse)
                 .toList();
     }

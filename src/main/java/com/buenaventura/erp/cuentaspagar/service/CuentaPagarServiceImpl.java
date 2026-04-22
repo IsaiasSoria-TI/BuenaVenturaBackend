@@ -15,107 +15,75 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@Transactional
 public class CuentaPagarServiceImpl implements CuentaPagarService {
 
+    private static final String ESTADO_PENDIENTE = "Pendiente";
+    private static final String ESTADO_COMPLETA_PARCIAL = "Completa parcial";
+    private static final String ESTADO_COMPLETA = "Completa";
+
     private final CuentaPagarRepository cuentaPagarRepository;
-    private final RecepcionRepository recepcionRepository;
     private final CompraRepository compraRepository;
+    private final RecepcionRepository recepcionRepository;
 
     public CuentaPagarServiceImpl(CuentaPagarRepository cuentaPagarRepository,
-                                  RecepcionRepository recepcionRepository,
-                                  CompraRepository compraRepository) {
+                                  CompraRepository compraRepository,
+                                  RecepcionRepository recepcionRepository) {
         this.cuentaPagarRepository = cuentaPagarRepository;
-        this.recepcionRepository = recepcionRepository;
         this.compraRepository = compraRepository;
+        this.recepcionRepository = recepcionRepository;
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<CuentaPagarResponse> listar() {
-        return cuentaPagarRepository.findByFlgActivoTrueAndEstadoOrderByFechaCreacionDesc("Pagado")
+        return cuentaPagarRepository.findByFlgActivoTrueOrderByFechaCreacionDesc()
                 .stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<CompraValidaResponse> listarComprasValidas() {
-        List<Compra> compras = compraRepository.findByFlgActivoTrueOrderByFechaComprasDesc();
-        List<CompraValidaResponse> response = new ArrayList<>();
-
-        for (Compra compra : compras) {
-            if (!"Completo".equalsIgnoreCase(compra.getEstado())) {
-                continue;
-            }
-
-            List<Recepcion> recepciones = recepcionRepository.obtenerPorCompra(compra.getIdCompras());
-
-            boolean tieneRecepcionDisponible = recepciones.stream()
-                    .filter(r -> "Completo".equalsIgnoreCase(r.getEstado()))
-                    .anyMatch(r -> !cuentaPagarRepository.existsByIdRecepcionesAndFlgActivoTrue(r.getIdRecepciones()));
-
-            if (!tieneRecepcionDisponible) {
-                continue;
-            }
-
-            CompraValidaResponse item = new CompraValidaResponse();
-            item.setIdCompras(compra.getIdCompras());
-            item.setFechaCompras(compra.getFechaCompras());
-            item.setPesoComprado(compra.getPeso());
-            item.setEstado(compra.getEstado());
-            item.setRazonSocial(compra.getProveedor().getRazonSocial());
-            item.setRuc(compra.getProveedor().getRuc());
-            item.setArticulo(compra.getArticulo().getDescripcion());
-            item.setMedida(compra.getArticulo().getMedida());
-            item.setZonaProduccion(compra.getZonaProduccion());
-            item.setHectareas(compra.getHectareas());
-            item.setCostoKilo(compra.getCostoKilo());
-            item.setCostoTotal(compra.getCostoTotal());
-
-            response.add(item);
-        }
-
-        return response;
+        return compraRepository.findByFlgActivoTrueOrderByFechaComprasDesc()
+                .stream()
+                .filter(this::tieneRecepcionesDisponiblesParaCuentaPagar)
+                .map(this::toCompraValidaResponse)
+                .toList();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public CuentaPagarDetalleCompraResponse verDetalleCompra(Integer idCompras) {
         Compra compra = compraRepository.findById(idCompras)
                 .orElseThrow(() -> new RuntimeException("La compra no existe"));
 
-        if (!Boolean.TRUE.equals(compra.getFlgActivo())) {
-            throw new RuntimeException("La compra está inactiva");
-        }
-
-        if (!"Completo".equalsIgnoreCase(compra.getEstado())) {
-            throw new RuntimeException("Solo se pueden usar compras completas");
-        }
-
-        List<Recepcion> recepciones = recepcionRepository.obtenerPorCompra(compra.getIdCompras());
-
-        List<CuentaPagarRecepcionDisponibleResponse> recepcionesDisponibles = recepciones.stream()
-                .filter(r -> "Completo".equalsIgnoreCase(r.getEstado()))
+        List<CuentaPagarRecepcionDisponibleResponse> recepcionesDisponibles = recepcionRepository.obtenerPorCompra(idCompras)
+                .stream()
+                .filter(this::esRecepcionValidaParaCuentaPagar)
                 .filter(r -> !cuentaPagarRepository.existsByIdRecepcionesAndFlgActivoTrue(r.getIdRecepciones()))
-                .map(r -> {
-                    CuentaPagarRecepcionDisponibleResponse item = new CuentaPagarRecepcionDisponibleResponse();
-                    item.setIdRecepciones(r.getIdRecepciones());
-                    item.setFechaRecepcion(r.getFechaRecepcion());
-                    item.setRecibido(r.getRecibido());
-                    item.setEstadoRecepcion(r.getEstado());
-                    return item;
-                })
+                .map(this::toRecepcionDisponibleResponse)
                 .toList();
+
+        if (recepcionesDisponibles.isEmpty()) {
+            throw new RuntimeException("La compra no tiene recepciones disponibles para cuentas por pagar");
+        }
 
         CuentaPagarDetalleCompraResponse response = new CuentaPagarDetalleCompraResponse();
         response.setIdCompras(compra.getIdCompras());
         response.setNumeroOperacion(compra.getIdCompras());
         response.setRuc(compra.getProveedor().getRuc());
         response.setRazonSocial(compra.getProveedor().getRazonSocial());
-        response.setCodArticulo(compra.getArticulo().getIdArticulo());
-        response.setDescripcionArticulo(compra.getArticulo().getDescripcion());
+
+        if (compra.getArticulo() != null) {
+            response.setCodArticulo(compra.getArticulo().getIdArticulo());
+            response.setDescripcionArticulo(compra.getArticulo().getDescripcion());
+        }
+
         response.setImporte(compra.getCostoTotal());
         response.setDeduccionRetencion(compra.getImporteImpuesto());
         response.setTipoDetRet(compra.getImpuesto().getTipoImpuesto());
@@ -128,141 +96,196 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
     }
 
     @Override
-    @Transactional
     public List<CuentaPagarResponse> registrar(CuentaPagarRequest request) {
-        if (request.getDetalles() == null || request.getDetalles().isEmpty()) {
-            throw new RuntimeException("Debes seleccionar al menos una recepción");
-        }
+        validarRequestRegistro(request);
 
-        if ("UNICA".equalsIgnoreCase(request.getTipoFactura())
-                && (request.getNumeroFactura() == null || request.getNumeroFactura().isBlank())) {
-            throw new RuntimeException("Debes ingresar el número de factura");
-        }
-
-        Integer idCompraBase = request.getDetalles().get(0).getIdCompras();
-
-        Compra compra = compraRepository.findById(idCompraBase)
-                .orElseThrow(() -> new RuntimeException("La compra no existe"));
-
-        if (!"Completo".equalsIgnoreCase(compra.getEstado())) {
-            throw new RuntimeException("Solo se pueden usar compras completas");
-        }
-
-        List<CuentaPagarResponse> response = new ArrayList<>();
-
-        for (CuentaPagarRequest.CuentaPagarRegistroDetalleRequest detalle : request.getDetalles()) {
-            if (!idCompraBase.equals(detalle.getIdCompras())) {
-                throw new RuntimeException("Todas las recepciones deben pertenecer a la misma compra");
-            }
-
-            Recepcion recepcion = recepcionRepository.findById(detalle.getIdRecepciones())
-                    .orElseThrow(() -> new RuntimeException("La recepción no existe"));
-
-            if (!"Completo".equalsIgnoreCase(recepcion.getEstado())) {
-                throw new RuntimeException("Solo se pueden usar recepciones completas");
-            }
-
-            if (!recepcion.getCompra().getIdCompras().equals(detalle.getIdCompras())) {
-                throw new RuntimeException("La recepción no pertenece a la compra seleccionada");
-            }
-
-            if (cuentaPagarRepository.existsByIdRecepcionesAndFlgActivoTrue(detalle.getIdRecepciones())) {
-                throw new RuntimeException(
-                        "La recepción con ID " + detalle.getIdRecepciones() + " ya fue registrada"
-                );
-            }
-
-            String numeroFacturaFinal;
-            if ("UNICA".equalsIgnoreCase(request.getTipoFactura())) {
-                numeroFacturaFinal = request.getNumeroFactura();
-            } else {
-                if (detalle.getNumeroFactura() == null || detalle.getNumeroFactura().isBlank()) {
-                    throw new RuntimeException("Debes ingresar número de factura para cada recepción");
-                }
-                numeroFacturaFinal = detalle.getNumeroFactura();
-            }
-
-            CuentaPagar cuentaPagar = new CuentaPagar();
-            cuentaPagar.setIdCompras(detalle.getIdCompras());
-            cuentaPagar.setIdRecepciones(detalle.getIdRecepciones());
-            cuentaPagar.setNumeroFactura(numeroFacturaFinal);
-            cuentaPagar.setMoneda(request.getMoneda());
-            cuentaPagar.setCodigoDetRet(request.getCodigoDetRet());
-            cuentaPagar.setEstado("Pagado");
-            cuentaPagar.setFlgActivo(true);
-
-            CuentaPagar guardada = cuentaPagarRepository.save(cuentaPagar);
-            response.add(toResponse(guardada));
-        }
-
-        return response;
+        return request.getDetalles()
+                .stream()
+                .map(detalle -> registrarDetalle(request, detalle))
+                .toList();
     }
 
     @Override
-    @Transactional
     public CuentaPagarResponse actualizar(Integer id, CuentaPagarRequest request) {
-        CuentaPagar existente = cuentaPagarRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Cuenta por pagar no encontrada"));
+        validarRequestRegistro(request);
 
-        if (request.getDetalles() == null || request.getDetalles().isEmpty()) {
-            throw new RuntimeException("Debes enviar un detalle");
+        if (request.getDetalles().size() != 1) {
+            throw new RuntimeException("Para actualizar debes enviar un solo detalle");
         }
 
+        CuentaPagar cuentaPagar = cuentaPagarRepository.findByIdCuentaPagarAndFlgActivoTrue(id)
+                .orElseThrow(() -> new RuntimeException("Cuenta por pagar no encontrada"));
+
         CuentaPagarRequest.CuentaPagarRegistroDetalleRequest detalle = request.getDetalles().get(0);
+
+        Compra compra = compraRepository.findById(detalle.getIdCompras())
+                .orElseThrow(() -> new RuntimeException("La compra no existe"));
 
         Recepcion recepcion = recepcionRepository.findById(detalle.getIdRecepciones())
                 .orElseThrow(() -> new RuntimeException("La recepción no existe"));
 
-        if (!"Completo".equalsIgnoreCase(recepcion.getEstado())) {
-            throw new RuntimeException("Solo se pueden editar recepciones completas");
+        if (!recepcion.getCompra().getIdCompras().equals(compra.getIdCompras())) {
+            throw new RuntimeException("La recepción no pertenece a la compra enviada");
         }
 
-        if (!recepcion.getCompra().getIdCompras().equals(detalle.getIdCompras())) {
-            throw new RuntimeException("La recepción no pertenece a la compra indicada");
-        }
+        validarEstadoRecepcion(recepcion.getEstado());
 
-        if (!existente.getIdRecepciones().equals(detalle.getIdRecepciones())
+        if (!cuentaPagar.getIdRecepciones().equals(detalle.getIdRecepciones())
                 && cuentaPagarRepository.existsByIdRecepcionesAndFlgActivoTrue(detalle.getIdRecepciones())) {
-            throw new RuntimeException("La recepción seleccionada ya tiene una cuenta por pagar");
+            throw new RuntimeException("La recepción ya tiene una cuenta por pagar registrada");
         }
 
-        String numeroFacturaFinal;
-        if ("UNICA".equalsIgnoreCase(request.getTipoFactura())) {
-            if (request.getNumeroFactura() == null || request.getNumeroFactura().isBlank()) {
-                throw new RuntimeException("Debes ingresar el número de factura");
-            }
-            numeroFacturaFinal = request.getNumeroFactura();
-        } else {
-            if (detalle.getNumeroFactura() == null || detalle.getNumeroFactura().isBlank()) {
-                throw new RuntimeException("Debes ingresar el número de factura del detalle");
-            }
-            numeroFacturaFinal = detalle.getNumeroFactura();
+        cuentaPagar.setIdCompras(detalle.getIdCompras());
+        cuentaPagar.setIdRecepciones(detalle.getIdRecepciones());
+        cuentaPagar.setNumeroFactura(obtenerNumeroFactura(request, detalle));
+        cuentaPagar.setMoneda(request.getMoneda().trim());
+        cuentaPagar.setCodigoDetRet(request.getCodigoDetRet().trim());
+
+        if (cuentaPagar.getEstado() == null || cuentaPagar.getEstado().isBlank()) {
+            cuentaPagar.setEstado(ESTADO_PENDIENTE);
         }
 
-        existente.setIdCompras(detalle.getIdCompras());
-        existente.setIdRecepciones(detalle.getIdRecepciones());
-        existente.setNumeroFactura(numeroFacturaFinal);
-        existente.setMoneda(request.getMoneda());
-        existente.setCodigoDetRet(request.getCodigoDetRet());
-        existente.setEstado("Pagado");
-        existente.setFechaActualizacion(LocalDateTime.now());
+        cuentaPagar.setFechaActualizacion(LocalDateTime.now());
 
-        return toResponse(cuentaPagarRepository.save(existente));
+        CuentaPagar actualizado = cuentaPagarRepository.save(cuentaPagar);
+        return toResponse(actualizado, compra, recepcion);
     }
 
     @Override
-    @Transactional
     public void eliminar(Integer id) {
-        CuentaPagar existente = cuentaPagarRepository.findById(id)
+        CuentaPagar cuentaPagar = cuentaPagarRepository.findByIdCuentaPagarAndFlgActivoTrue(id)
                 .orElseThrow(() -> new RuntimeException("Cuenta por pagar no encontrada"));
 
-        existente.setFlgActivo(false);
-        existente.setFechaActualizacion(LocalDateTime.now());
+        cuentaPagar.setFlgActivo(false);
+        cuentaPagar.setFechaActualizacion(LocalDateTime.now());
 
-        cuentaPagarRepository.save(existente);
+        cuentaPagarRepository.save(cuentaPagar);
+    }
+
+    private CuentaPagarResponse registrarDetalle(
+            CuentaPagarRequest request,
+            CuentaPagarRequest.CuentaPagarRegistroDetalleRequest detalle
+    ) {
+        Compra compra = compraRepository.findById(detalle.getIdCompras())
+                .orElseThrow(() -> new RuntimeException("La compra no existe"));
+
+        Recepcion recepcion = recepcionRepository.findById(detalle.getIdRecepciones())
+                .orElseThrow(() -> new RuntimeException("La recepción no existe"));
+
+        if (!recepcion.getCompra().getIdCompras().equals(compra.getIdCompras())) {
+            throw new RuntimeException("La recepción no pertenece a la compra enviada");
+        }
+
+        validarEstadoRecepcion(recepcion.getEstado());
+
+        if (cuentaPagarRepository.existsByIdRecepcionesAndFlgActivoTrue(detalle.getIdRecepciones())) {
+            throw new RuntimeException("La recepción ya tiene una cuenta por pagar registrada");
+        }
+
+        CuentaPagar cuentaPagar = new CuentaPagar();
+        cuentaPagar.setIdCompras(compra.getIdCompras());
+        cuentaPagar.setIdRecepciones(recepcion.getIdRecepciones());
+        cuentaPagar.setNumeroFactura(obtenerNumeroFactura(request, detalle));
+        cuentaPagar.setMoneda(request.getMoneda().trim());
+        cuentaPagar.setCodigoDetRet(request.getCodigoDetRet().trim());
+        cuentaPagar.setEstado(ESTADO_PENDIENTE);
+        cuentaPagar.setFlgActivo(true);
+        cuentaPagar.setFechaActualizacion(LocalDateTime.now());
+
+        CuentaPagar guardado = cuentaPagarRepository.save(cuentaPagar);
+        return toResponse(guardado, compra, recepcion);
+    }
+
+    private boolean tieneRecepcionesDisponiblesParaCuentaPagar(Compra compra) {
+        return recepcionRepository.obtenerPorCompra(compra.getIdCompras())
+                .stream()
+                .anyMatch(r -> esRecepcionValidaParaCuentaPagar(r)
+                        && !cuentaPagarRepository.existsByIdRecepcionesAndFlgActivoTrue(r.getIdRecepciones()));
+    }
+
+    private boolean esRecepcionValidaParaCuentaPagar(Recepcion recepcion) {
+        return ESTADO_COMPLETA_PARCIAL.equalsIgnoreCase(recepcion.getEstado())
+                || ESTADO_COMPLETA.equalsIgnoreCase(recepcion.getEstado());
+    }
+
+    private void validarEstadoRecepcion(String estadoRecepcion) {
+        if (estadoRecepcion == null || estadoRecepcion.isBlank()) {
+            throw new RuntimeException("La recepción no tiene estado válido");
+        }
+
+        boolean recepcionValida = ESTADO_COMPLETA_PARCIAL.equalsIgnoreCase(estadoRecepcion)
+                || ESTADO_COMPLETA.equalsIgnoreCase(estadoRecepcion);
+
+        if (!recepcionValida) {
+            throw new RuntimeException("Solo se permiten recepciones en estado 'Completa parcial' o 'Completa'");
+        }
+    }
+
+    private void validarRequestRegistro(CuentaPagarRequest request) {
+        if ("UNICA".equalsIgnoreCase(request.getTipoFactura())) {
+            if (request.getNumeroFactura() == null || request.getNumeroFactura().isBlank()) {
+                throw new RuntimeException("Para tipo de factura UNICA, el número de factura es obligatorio");
+            }
+        }
+
+        if ("MULTIPLE".equalsIgnoreCase(request.getTipoFactura())) {
+            for (CuentaPagarRequest.CuentaPagarRegistroDetalleRequest detalle : request.getDetalles()) {
+                if (detalle.getNumeroFactura() == null || detalle.getNumeroFactura().isBlank()) {
+                    throw new RuntimeException("Para tipo de factura MULTIPLE, cada detalle debe tener número de factura");
+                }
+            }
+        }
+    }
+
+    private String obtenerNumeroFactura(
+            CuentaPagarRequest request,
+            CuentaPagarRequest.CuentaPagarRegistroDetalleRequest detalle
+    ) {
+        if ("UNICA".equalsIgnoreCase(request.getTipoFactura())) {
+            return request.getNumeroFactura().trim();
+        }
+
+        return detalle.getNumeroFactura().trim();
+    }
+
+    private CompraValidaResponse toCompraValidaResponse(Compra compra) {
+        CompraValidaResponse response = new CompraValidaResponse();
+        response.setIdCompras(compra.getIdCompras());
+        response.setFechaCompras(compra.getFechaCompras());
+        response.setPesoComprado(compra.getPeso());
+        response.setEstado(compra.getEstado());
+        response.setRazonSocial(compra.getProveedor().getRazonSocial());
+        response.setRuc(compra.getProveedor().getRuc());
+
+        if (compra.getArticulo() != null) {
+            response.setArticulo(compra.getArticulo().getDescripcion());
+            response.setMedida(compra.getArticulo().getMedida());
+        }
+
+        response.setZonaProduccion(compra.getZonaProduccion());
+        response.setHectareas(compra.getHectareas());
+        response.setCostoKilo(compra.getCostoKilo());
+        response.setCostoTotal(compra.getCostoTotal());
+
+        return response;
+    }
+
+    private CuentaPagarRecepcionDisponibleResponse toRecepcionDisponibleResponse(Recepcion recepcion) {
+        CuentaPagarRecepcionDisponibleResponse response = new CuentaPagarRecepcionDisponibleResponse();
+        response.setIdRecepciones(recepcion.getIdRecepciones());
+        response.setFechaRecepcion(recepcion.getFechaRecepcion());
+        response.setRecibido(recepcion.getRecibido());
+        response.setEstadoRecepcion(recepcion.getEstado());
+        return response;
     }
 
     private CuentaPagarResponse toResponse(CuentaPagar cuentaPagar) {
+        Compra compra = compraRepository.findById(cuentaPagar.getIdCompras()).orElse(null);
+        Recepcion recepcion = recepcionRepository.findById(cuentaPagar.getIdRecepciones()).orElse(null);
+        return toResponse(cuentaPagar, compra, recepcion);
+    }
+
+    private CuentaPagarResponse toResponse(CuentaPagar cuentaPagar, Compra compra, Recepcion recepcion) {
         CuentaPagarResponse response = new CuentaPagarResponse();
         response.setIdCuentaPagar(cuentaPagar.getIdCuentaPagar());
         response.setIdCompras(cuentaPagar.getIdCompras());
@@ -275,14 +298,17 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
         response.setFechaCreacion(cuentaPagar.getFechaCreacion());
         response.setFechaActualizacion(cuentaPagar.getFechaActualizacion());
 
-        Recepcion recepcion = recepcionRepository.findById(cuentaPagar.getIdRecepciones()).orElse(null);
-        if (recepcion != null) {
-            response.setEstadoRecepcion(recepcion.getEstado());
-
-            Compra compra = recepcion.getCompra();
+        if (compra != null) {
             response.setProveedor(compra.getProveedor().getRazonSocial());
             response.setRuc(compra.getProveedor().getRuc());
-            response.setArticulo(compra.getArticulo().getDescripcion());
+
+            if (compra.getArticulo() != null) {
+                response.setArticulo(compra.getArticulo().getDescripcion());
+            }
+        }
+
+        if (recepcion != null) {
+            response.setEstadoRecepcion(recepcion.getEstado());
         }
 
         return response;

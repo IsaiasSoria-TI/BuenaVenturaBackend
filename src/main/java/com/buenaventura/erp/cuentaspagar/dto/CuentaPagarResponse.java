@@ -14,7 +14,6 @@ public class CuentaPagarResponse {
     private Boolean flgActivo;
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaActualizacion;
-
     private String proveedor;
     private String ruc;
     private String articulo;
