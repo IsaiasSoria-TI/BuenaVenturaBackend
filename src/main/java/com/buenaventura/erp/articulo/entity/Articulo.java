@@ -1,6 +1,8 @@
 package com.buenaventura.erp.articulo.entity;
 
+import com.buenaventura.erp.categoria.entity.Categoria;
 import jakarta.persistence.*;
+
 import java.math.BigDecimal;
 
 @Entity
@@ -20,6 +22,10 @@ public class Articulo {
 
     @Column(name = "Stock", nullable = false, precision = 10, scale = 2)
     private BigDecimal stock;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "IdCategoria", nullable = false)
+    private Categoria categoria;
 
     @Column(name = "Estado", nullable = false, length = 20)
     private String estado;
@@ -57,6 +63,14 @@ public class Articulo {
 
     public void setStock(BigDecimal stock) {
         this.stock = stock;
+    }
+
+    public Categoria getCategoria() {
+        return categoria;
+    }
+
+    public void setCategoria(Categoria categoria) {
+        this.categoria = categoria;
     }
 
     public String getEstado() {

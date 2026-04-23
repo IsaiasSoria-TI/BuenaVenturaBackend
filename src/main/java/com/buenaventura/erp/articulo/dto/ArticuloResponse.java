@@ -8,6 +8,8 @@ public class ArticuloResponse {
     private String descripcion;
     private String medida;
     private BigDecimal stock;
+    private Integer idCategoria;
+    private String descripcionCategoria;
     private String estado;
 
     public ArticuloResponse() {
@@ -43,6 +45,22 @@ public class ArticuloResponse {
 
     public void setStock(BigDecimal stock) {
         this.stock = stock;
+    }
+
+    public Integer getIdCategoria() {
+        return idCategoria;
+    }
+
+    public void setIdCategoria(Integer idCategoria) {
+        this.idCategoria = idCategoria;
+    }
+
+    public String getDescripcionCategoria() {
+        return descripcionCategoria;
+    }
+
+    public void setDescripcionCategoria(String descripcionCategoria) {
+        this.descripcionCategoria = descripcionCategoria;
     }
 
     public String getEstado() {

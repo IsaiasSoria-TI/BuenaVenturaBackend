@@ -17,6 +17,9 @@ public class ArticuloRequest {
     @DecimalMin(value = "0.00", message = "El stock no puede ser negativo")
     private BigDecimal stock;
 
+    @NotNull(message = "La categoría es obligatoria")
+    private Integer idCategoria;
+
     private String estado;
 
     public ArticuloRequest() {
@@ -44,6 +47,14 @@ public class ArticuloRequest {
 
     public void setStock(BigDecimal stock) {
         this.stock = stock;
+    }
+
+    public Integer getIdCategoria() {
+        return idCategoria;
+    }
+
+    public void setIdCategoria(Integer idCategoria) {
+        this.idCategoria = idCategoria;
     }
 
     public String getEstado() {

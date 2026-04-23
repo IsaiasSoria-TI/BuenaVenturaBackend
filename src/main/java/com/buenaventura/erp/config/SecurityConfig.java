@@ -42,6 +42,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/impuestos", "/api/impuestos/**").permitAll()
                         .requestMatchers("/api/pagos", "/api/pagos/**").permitAll()
                         .requestMatchers("/api/recepciones", "/api/recepciones/**").permitAll()
+                        .requestMatchers("/api/cuentas-contables/**").permitAll()
+                        .requestMatchers("/api/categorias/**").permitAll()
+                        .requestMatchers("/api/articulos/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
