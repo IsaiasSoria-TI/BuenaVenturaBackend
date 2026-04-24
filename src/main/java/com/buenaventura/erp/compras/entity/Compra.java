@@ -178,10 +178,6 @@ public class Compra {
         return fechaCreacion;
     }
 
-    public void setFechaCreacion(LocalDateTime fechaCreacion) {
-        this.fechaCreacion = fechaCreacion;
-    }
-
     public LocalDateTime getFechaActualizacion() {
         return fechaActualizacion;
     }

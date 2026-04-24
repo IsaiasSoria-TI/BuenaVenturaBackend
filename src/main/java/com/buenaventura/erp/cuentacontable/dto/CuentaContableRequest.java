@@ -3,6 +3,7 @@ package com.buenaventura.erp.cuentacontable.dto;
 public class CuentaContableRequest {
 
     private String codigo;
+    private String descripcion;
     private String estado;
 
     public CuentaContableRequest() {
@@ -14,6 +15,14 @@ public class CuentaContableRequest {
 
     public void setCodigo(String codigo) {
         this.codigo = codigo;
+    }
+
+    public String getDescripcion() {
+        return descripcion;
+    }
+
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
     }
 
     public String getEstado() {

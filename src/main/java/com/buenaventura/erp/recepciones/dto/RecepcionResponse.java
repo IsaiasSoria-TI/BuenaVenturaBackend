@@ -2,25 +2,26 @@ package com.buenaventura.erp.recepciones.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class RecepcionResponse {
 
     private Integer idRecepciones;
+    private Integer idCompras;
     private LocalDateTime fechaRecepcion;
     private String estado;
 
-    private Integer idCompras;
-    private BigDecimal pesoComprado;
-    private BigDecimal recibido;
     private String estadoCompra;
-
     private String razonSocial;
     private String ruc;
+
+    private BigDecimal pesoComprado;
+    private BigDecimal recibido;
+
     private String articulo;
     private String medida;
 
-    public RecepcionResponse() {
-    }
+    private List<RecepcionDetalleItemResponse> detalles;
 
     public Integer getIdRecepciones() {
         return idRecepciones;
@@ -28,6 +29,14 @@ public class RecepcionResponse {
 
     public void setIdRecepciones(Integer idRecepciones) {
         this.idRecepciones = idRecepciones;
+    }
+
+    public Integer getIdCompras() {
+        return idCompras;
+    }
+
+    public void setIdCompras(Integer idCompras) {
+        this.idCompras = idCompras;
     }
 
     public LocalDateTime getFechaRecepcion() {
@@ -44,30 +53,6 @@ public class RecepcionResponse {
 
     public void setEstado(String estado) {
         this.estado = estado;
-    }
-
-    public Integer getIdCompras() {
-        return idCompras;
-    }
-
-    public void setIdCompras(Integer idCompras) {
-        this.idCompras = idCompras;
-    }
-
-    public BigDecimal getPesoComprado() {
-        return pesoComprado;
-    }
-
-    public void setPesoComprado(BigDecimal pesoComprado) {
-        this.pesoComprado = pesoComprado;
-    }
-
-    public BigDecimal getRecibido() {
-        return recibido;
-    }
-
-    public void setRecibido(BigDecimal recibido) {
-        this.recibido = recibido;
     }
 
     public String getEstadoCompra() {
@@ -94,6 +79,22 @@ public class RecepcionResponse {
         this.ruc = ruc;
     }
 
+    public BigDecimal getPesoComprado() {
+        return pesoComprado;
+    }
+
+    public void setPesoComprado(BigDecimal pesoComprado) {
+        this.pesoComprado = pesoComprado;
+    }
+
+    public BigDecimal getRecibido() {
+        return recibido;
+    }
+
+    public void setRecibido(BigDecimal recibido) {
+        this.recibido = recibido;
+    }
+
     public String getArticulo() {
         return articulo;
     }
@@ -108,5 +109,13 @@ public class RecepcionResponse {
 
     public void setMedida(String medida) {
         this.medida = medida;
+    }
+
+    public List<RecepcionDetalleItemResponse> getDetalles() {
+        return detalles;
+    }
+
+    public void setDetalles(List<RecepcionDetalleItemResponse> detalles) {
+        this.detalles = detalles;
     }
 }

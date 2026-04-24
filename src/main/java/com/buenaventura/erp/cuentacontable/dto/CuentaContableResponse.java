@@ -4,6 +4,7 @@ public class CuentaContableResponse {
 
     private Integer idCuentaContable;
     private String codigo;
+    private String descripcion;
     private String estado;
 
     public CuentaContableResponse() {
@@ -23,6 +24,14 @@ public class CuentaContableResponse {
 
     public void setCodigo(String codigo) {
         this.codigo = codigo;
+    }
+
+    public String getDescripcion() {
+        return descripcion;
+    }
+
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
     }
 
     public String getEstado() {

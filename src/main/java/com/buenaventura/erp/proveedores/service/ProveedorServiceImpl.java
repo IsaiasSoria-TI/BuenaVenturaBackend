@@ -33,7 +33,7 @@ public class ProveedorServiceImpl implements ProveedorService {
 
     @Override
     public List<ProveedorResponse> listar() {
-        return proveedorRepository.findByFlgActivoTrue()
+        return proveedorRepository.findAll()
                 .stream()
                 .map(this::toResponse)
                 .toList();

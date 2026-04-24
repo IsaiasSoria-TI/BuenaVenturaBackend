@@ -81,7 +81,9 @@ public class CategoriaServiceImpl implements CategoriaService {
         response.setIdCategoria(categoria.getIdCategoria());
         response.setDescripcion(categoria.getDescripcion());
         response.setIdCuentaContable(categoria.getCuentaContable().getIdCuentaContable());
-        response.setCodigoCuentaContable(categoria.getCuentaContable().getCodigo());
+        response.setCodigoCuentaContable(
+                categoria.getCuentaContable().getCodigo() + " - " + categoria.getCuentaContable().getDescripcion()
+        );
         response.setEstado(categoria.getEstado());
         return response;
     }

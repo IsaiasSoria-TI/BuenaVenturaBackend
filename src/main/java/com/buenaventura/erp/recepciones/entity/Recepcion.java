@@ -22,7 +22,7 @@ public class Recepcion {
     @Column(name = "Recibido", nullable = false, precision = 10, scale = 2)
     private BigDecimal recibido;
 
-    @Column(name = "FechaRecepcion", insertable = false, updatable = false)
+    @Column(name = "FechaRecepcion", nullable = false)
     private LocalDateTime fechaRecepcion;
 
     @Column(name = "Estado", nullable = false, length = 20)

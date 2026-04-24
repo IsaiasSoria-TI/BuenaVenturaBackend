@@ -1,18 +1,19 @@
 package com.buenaventura.erp.recepciones.dto;
 
-import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
-import java.math.BigDecimal;
+import java.util.List;
 
 public class RecepcionRequest {
 
     @NotNull(message = "La compra es obligatoria")
     private Integer idCompras;
 
-    @NotNull(message = "El peso recibido es obligatorio")
-    @DecimalMin(value = "0.01", message = "El peso recibido debe ser mayor a 0")
-    private BigDecimal recibido;
+    @Valid
+    @NotEmpty(message = "Debe agregar al menos un detalle de recepción")
+    private List<RecepcionDetalleRequest> detalles;
 
     public RecepcionRequest() {
     }
@@ -25,11 +26,11 @@ public class RecepcionRequest {
         this.idCompras = idCompras;
     }
 
-    public BigDecimal getRecibido() {
-        return recibido;
+    public List<RecepcionDetalleRequest> getDetalles() {
+        return detalles;
     }
 
-    public void setRecibido(BigDecimal recibido) {
-        this.recibido = recibido;
+    public void setDetalles(List<RecepcionDetalleRequest> detalles) {
+        this.detalles = detalles;
     }
 }

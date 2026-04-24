@@ -6,33 +6,22 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 public interface RecepcionRepository extends JpaRepository<Recepcion, Integer> {
 
-    @EntityGraph(attributePaths = {"compra", "compra.proveedor", "compra.articulo"})
+    @EntityGraph(attributePaths = {"compra", "compra.proveedor"})
     List<Recepcion> findAllByOrderByFechaRecepcionDesc();
 
-    @Query("""
-            select coalesce(sum(r.recibido), 0)
-            from Recepcion r
-            where r.compra.idCompras = :idCompras
-            """)
-    BigDecimal sumarRecibidoPorCompra(@Param("idCompras") Integer idCompras);
+    @EntityGraph(attributePaths = {"compra", "compra.proveedor"})
+    List<Recepcion> findByCompra_IdComprasOrderByFechaRecepcionAsc(Integer idCompras);
 
-    @EntityGraph(attributePaths = {
-            "compra",
-            "compra.proveedor",
-            "compra.articulo",
-            "compra.impuesto",
-            "compra.pago"
-    })
+    @EntityGraph(attributePaths = {"compra", "compra.proveedor"})
     @Query("""
-            select r
-            from Recepcion r
-            where r.compra.idCompras = :idCompras
-            order by r.fechaRecepcion desc
+            SELECT r
+            FROM Recepcion r
+            WHERE r.compra.idCompras = :idCompras
+            ORDER BY r.fechaRecepcion ASC
             """)
     List<Recepcion> obtenerPorCompra(@Param("idCompras") Integer idCompras);
 }

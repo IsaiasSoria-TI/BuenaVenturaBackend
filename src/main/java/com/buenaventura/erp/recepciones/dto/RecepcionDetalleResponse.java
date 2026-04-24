@@ -2,26 +2,25 @@ package com.buenaventura.erp.recepciones.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
-public class RecepcionDetalleResponse{
+public class RecepcionDetalleResponse {
 
     private Integer idCompras;
     private LocalDateTime fechaCompras;
-    private BigDecimal pesoComprado;
     private String estado;
     private String razonSocial;
     private String ruc;
-    private String articulo;
-    private String medida;
     private String zonaProduccion;
     private BigDecimal hectareas;
-    private BigDecimal costoKilo;
-    private BigDecimal costoTotal;
+
+    private BigDecimal pesoComprado;
     private BigDecimal totalRecibido;
     private BigDecimal pesoPendiente;
 
-    public RecepcionDetalleResponse(){
-    }
+    private BigDecimal costoTotal;
+
+    private List<RecepcionDetalleItemResponse> detalles;
 
     public Integer getIdCompras() {
         return idCompras;
@@ -37,14 +36,6 @@ public class RecepcionDetalleResponse{
 
     public void setFechaCompras(LocalDateTime fechaCompras) {
         this.fechaCompras = fechaCompras;
-    }
-
-    public BigDecimal getPesoComprado() {
-        return pesoComprado;
-    }
-
-    public void setPesoComprado(BigDecimal pesoComprado) {
-        this.pesoComprado = pesoComprado;
     }
 
     public String getEstado() {
@@ -71,22 +62,6 @@ public class RecepcionDetalleResponse{
         this.ruc = ruc;
     }
 
-    public String getArticulo() {
-        return articulo;
-    }
-
-    public void setArticulo(String articulo) {
-        this.articulo = articulo;
-    }
-
-    public String getMedida() {
-        return medida;
-    }
-
-    public void setMedida(String medida) {
-        this.medida = medida;
-    }
-
     public String getZonaProduccion() {
         return zonaProduccion;
     }
@@ -103,20 +78,12 @@ public class RecepcionDetalleResponse{
         this.hectareas = hectareas;
     }
 
-    public BigDecimal getCostoKilo() {
-        return costoKilo;
+    public BigDecimal getPesoComprado() {
+        return pesoComprado;
     }
 
-    public void setCostoKilo(BigDecimal costoKilo) {
-        this.costoKilo = costoKilo;
-    }
-
-    public BigDecimal getCostoTotal() {
-        return costoTotal;
-    }
-
-    public void setCostoTotal(BigDecimal costoTotal) {
-        this.costoTotal = costoTotal;
+    public void setPesoComprado(BigDecimal pesoComprado) {
+        this.pesoComprado = pesoComprado;
     }
 
     public BigDecimal getTotalRecibido() {
@@ -133,5 +100,21 @@ public class RecepcionDetalleResponse{
 
     public void setPesoPendiente(BigDecimal pesoPendiente) {
         this.pesoPendiente = pesoPendiente;
+    }
+
+    public BigDecimal getCostoTotal() {
+        return costoTotal;
+    }
+
+    public void setCostoTotal(BigDecimal costoTotal) {
+        this.costoTotal = costoTotal;
+    }
+
+    public List<RecepcionDetalleItemResponse> getDetalles() {
+        return detalles;
+    }
+
+    public void setDetalles(List<RecepcionDetalleItemResponse> detalles) {
+        this.detalles = detalles;
     }
 }

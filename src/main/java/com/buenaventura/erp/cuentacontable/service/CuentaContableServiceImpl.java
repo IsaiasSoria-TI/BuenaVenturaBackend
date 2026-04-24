@@ -30,6 +30,7 @@ public class CuentaContableServiceImpl implements CuentaContableService {
     public CuentaContableResponse crear(CuentaContableRequest request) {
         CuentaContable cuenta = new CuentaContable();
         cuenta.setCodigo(request.getCodigo());
+        cuenta.setDescripcion(request.getDescripcion());
         cuenta.setEstado(
                 request.getEstado() == null || request.getEstado().isBlank()
                         ? "Activo"
@@ -45,6 +46,7 @@ public class CuentaContableServiceImpl implements CuentaContableService {
                 .orElseThrow(() -> new RuntimeException("Cuenta contable no encontrada"));
 
         cuenta.setCodigo(request.getCodigo());
+        cuenta.setDescripcion(request.getDescripcion());
         cuenta.setEstado(
                 request.getEstado() == null || request.getEstado().isBlank()
                         ? cuenta.getEstado()
@@ -67,6 +69,7 @@ public class CuentaContableServiceImpl implements CuentaContableService {
         CuentaContableResponse response = new CuentaContableResponse();
         response.setIdCuentaContable(entity.getIdCuentaContable());
         response.setCodigo(entity.getCodigo());
+        response.setDescripcion(entity.getDescripcion());
         response.setEstado(entity.getEstado());
         return response;
     }

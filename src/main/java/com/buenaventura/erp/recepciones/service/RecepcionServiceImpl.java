@@ -1,13 +1,20 @@
 package com.buenaventura.erp.recepciones.service;
 
 import com.buenaventura.erp.compras.entity.Compra;
+import com.buenaventura.erp.compras.entity.CompraDetalle;
+import com.buenaventura.erp.compras.repository.CompraDetalleRepository;
 import com.buenaventura.erp.compras.repository.CompraRepository;
+import com.buenaventura.erp.recepciones.dto.RecepcionDetalleItemResponse;
+import com.buenaventura.erp.recepciones.dto.RecepcionDetalleRequest;
 import com.buenaventura.erp.recepciones.dto.RecepcionDetalleResponse;
 import com.buenaventura.erp.recepciones.dto.RecepcionRequest;
 import com.buenaventura.erp.recepciones.dto.RecepcionResponse;
 import com.buenaventura.erp.recepciones.entity.Recepcion;
+import com.buenaventura.erp.recepciones.entity.RecepcionDetalle;
+import com.buenaventura.erp.recepciones.repository.RecepcionDetalleRepository;
 import com.buenaventura.erp.recepciones.repository.RecepcionRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,12 +28,18 @@ public class RecepcionServiceImpl implements RecepcionService {
     private static final String ESTADO_COMPLETA = "Completa";
 
     private final RecepcionRepository recepcionRepository;
+    private final RecepcionDetalleRepository recepcionDetalleRepository;
     private final CompraRepository compraRepository;
+    private final CompraDetalleRepository compraDetalleRepository;
 
     public RecepcionServiceImpl(RecepcionRepository recepcionRepository,
-                                CompraRepository compraRepository) {
+                                RecepcionDetalleRepository recepcionDetalleRepository,
+                                CompraRepository compraRepository,
+                                CompraDetalleRepository compraDetalleRepository) {
         this.recepcionRepository = recepcionRepository;
+        this.recepcionDetalleRepository = recepcionDetalleRepository;
         this.compraRepository = compraRepository;
+        this.compraDetalleRepository = compraDetalleRepository;
     }
 
     @Override
@@ -38,6 +51,7 @@ public class RecepcionServiceImpl implements RecepcionService {
     }
 
     @Override
+    @Transactional
     public RecepcionResponse registrar(RecepcionRequest request) {
         Compra compra = compraRepository.findById(request.getIdCompras())
                 .orElseThrow(() -> new RuntimeException("La compra no existe"));
@@ -50,48 +64,89 @@ public class RecepcionServiceImpl implements RecepcionService {
             throw new RuntimeException("No se puede registrar recepción para una compra completa");
         }
 
-        if (request.getRecibido() == null || request.getRecibido().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new RuntimeException("El peso recibido debe ser mayor a cero");
+        if (request.getDetalles() == null || request.getDetalles().isEmpty()) {
+            throw new RuntimeException("Debe agregar al menos un detalle de recepción");
         }
 
-        BigDecimal totalRecibidoActual = recepcionRepository.sumarRecibidoPorCompra(compra.getIdCompras());
-        BigDecimal nuevoTotal = totalRecibidoActual.add(request.getRecibido());
+        BigDecimal totalRecibidoRecepcion = BigDecimal.ZERO;
 
-        if (nuevoTotal.compareTo(compra.getPeso()) > 0) {
-            throw new RuntimeException("Excede el peso comprado");
+        for (RecepcionDetalleRequest detalleRequest : request.getDetalles()) {
+            if (detalleRequest.getRecibido() == null ||
+                    detalleRequest.getRecibido().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new RuntimeException("El peso recibido debe ser mayor a cero");
+            }
+
+            CompraDetalle compraDetalle = compraDetalleRepository.findById(detalleRequest.getIdCompraDetalle())
+                    .orElseThrow(() -> new RuntimeException("Detalle de compra no encontrado"));
+
+            if (!compraDetalle.getCompra().getIdCompras().equals(compra.getIdCompras())) {
+                throw new RuntimeException("El detalle no pertenece a la compra seleccionada");
+            }
+
+            BigDecimal recibidoActual = recepcionDetalleRepository
+                    .sumarRecibidoPorCompraDetalle(compraDetalle.getIdCompraDetalle());
+
+            BigDecimal nuevoTotalDetalle = recibidoActual.add(detalleRequest.getRecibido());
+
+            if (nuevoTotalDetalle.compareTo(compraDetalle.getPeso()) > 0) {
+                throw new RuntimeException(
+                        "El recibido excede el peso comprado del artículo: "
+                                + compraDetalle.getArticulo().getDescripcion()
+                );
+            }
+
+            totalRecibidoRecepcion = totalRecibidoRecepcion.add(detalleRequest.getRecibido());
         }
 
         Recepcion recepcion = new Recepcion();
         recepcion.setCompra(compra);
-        recepcion.setRecibido(request.getRecibido());
+        recepcion.setRecibido(totalRecibidoRecepcion);
         recepcion.setFechaRecepcion(LocalDateTime.now());
-
-        if (nuevoTotal.compareTo(compra.getPeso()) == 0) {
-            recepcion.setEstado(ESTADO_COMPLETA);
-        } else {
-            recepcion.setEstado(ESTADO_COMPLETA_PARCIAL);
-        }
+        recepcion.setEstado(ESTADO_COMPLETA_PARCIAL);
 
         Recepcion guardada = recepcionRepository.save(recepcion);
 
-        if (nuevoTotal.compareTo(compra.getPeso()) == 0) {
-            compra.setEstado(ESTADO_COMPLETA);
-            compra.setFechaActualizacion(LocalDateTime.now());
-            compraRepository.save(compra);
+        for (RecepcionDetalleRequest detalleRequest : request.getDetalles()) {
+            CompraDetalle compraDetalle = compraDetalleRepository.findById(detalleRequest.getIdCompraDetalle())
+                    .orElseThrow(() -> new RuntimeException("Detalle de compra no encontrado"));
 
-            List<Recepcion> recepciones = recepcionRepository.obtenerPorCompra(compra.getIdCompras());
-            for (Recepcion r : recepciones) {
-                r.setEstado(ESTADO_COMPLETA);
+            BigDecimal recibidoActual = recepcionDetalleRepository
+                    .sumarRecibidoPorCompraDetalle(compraDetalle.getIdCompraDetalle());
+
+            BigDecimal nuevoTotalDetalle = recibidoActual.add(detalleRequest.getRecibido());
+
+            RecepcionDetalle detalle = new RecepcionDetalle();
+            detalle.setRecepcion(guardada);
+            detalle.setCompraDetalle(compraDetalle);
+            detalle.setRecibido(detalleRequest.getRecibido());
+            detalle.setEstado(
+                    nuevoTotalDetalle.compareTo(compraDetalle.getPeso()) == 0
+                            ? ESTADO_COMPLETA
+                            : ESTADO_COMPLETA_PARCIAL
+            );
+            detalle.setFlgActivo(true);
+
+            recepcionDetalleRepository.save(detalle);
+        }
+
+        String nuevoEstadoCompra = calcularEstadoCompra(compra.getIdCompras());
+
+        compra.setEstado(nuevoEstadoCompra);
+        compra.setFechaActualizacion(LocalDateTime.now());
+        compraRepository.save(compra);
+
+        guardada.setEstado(nuevoEstadoCompra);
+        recepcionRepository.save(guardada);
+
+        if (ESTADO_COMPLETA.equalsIgnoreCase(nuevoEstadoCompra)) {
+            List<Recepcion> recepcionesCompra =
+                    recepcionRepository.findByCompra_IdComprasOrderByFechaRecepcionAsc(compra.getIdCompras());
+
+            for (Recepcion item : recepcionesCompra) {
+                item.setEstado(ESTADO_COMPLETA);
             }
-            recepcionRepository.saveAll(recepciones);
 
-            guardada.setEstado(ESTADO_COMPLETA);
-        } else {
-            compra.setEstado(ESTADO_COMPLETA_PARCIAL);
-            compra.setFechaActualizacion(LocalDateTime.now());
-            compraRepository.save(compra);
-
-            guardada.setEstado(ESTADO_COMPLETA_PARCIAL);
+            recepcionRepository.saveAll(recepcionesCompra);
         }
 
         return toResponse(guardada);
@@ -101,7 +156,7 @@ public class RecepcionServiceImpl implements RecepcionService {
     public List<RecepcionResponse> listarComprasPendientes() {
         return compraRepository.findByFlgActivoTrueOrderByFechaComprasDesc()
                 .stream()
-                .filter(c -> !ESTADO_COMPLETA.equalsIgnoreCase(c.getEstado()))
+                .filter(compra -> !ESTADO_COMPLETA.equalsIgnoreCase(compra.getEstado()))
                 .map(this::toCompraPendienteResponse)
                 .toList();
     }
@@ -111,29 +166,119 @@ public class RecepcionServiceImpl implements RecepcionService {
         Compra compra = compraRepository.findById(idCompras)
                 .orElseThrow(() -> new RuntimeException("La compra no existe"));
 
-        BigDecimal totalRecibido = recepcionRepository.sumarRecibidoPorCompra(idCompras);
-        BigDecimal pesoPendiente = compra.getPeso().subtract(totalRecibido);
-
         RecepcionDetalleResponse response = new RecepcionDetalleResponse();
         response.setIdCompras(compra.getIdCompras());
         response.setFechaCompras(compra.getFechaCompras());
-        response.setPesoComprado(compra.getPeso());
         response.setEstado(compra.getEstado());
         response.setRazonSocial(compra.getProveedor().getRazonSocial());
         response.setRuc(compra.getProveedor().getRuc());
-        response.setArticulo(compra.getArticulo().getDescripcion());
-        response.setMedida(compra.getArticulo().getMedida());
         response.setZonaProduccion(compra.getZonaProduccion());
         response.setHectareas(compra.getHectareas());
-        response.setCostoKilo(compra.getCostoKilo());
         response.setCostoTotal(compra.getCostoTotal());
+
+        List<RecepcionDetalleItemResponse> detalles = obtenerDetallesCompra(compra.getIdCompras());
+
+        BigDecimal pesoComprado = detalles.stream()
+                .map(RecepcionDetalleItemResponse::getPesoComprado)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalRecibido = detalles.stream()
+                .map(RecepcionDetalleItemResponse::getTotalRecibido)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        response.setPesoComprado(pesoComprado);
         response.setTotalRecibido(totalRecibido);
-        response.setPesoPendiente(pesoPendiente);
+        response.setPesoPendiente(pesoComprado.subtract(totalRecibido));
+        response.setDetalles(detalles);
 
         return response;
     }
 
+    private String calcularEstadoCompra(Integer idCompras) {
+        List<RecepcionDetalleItemResponse> detalles = obtenerDetallesCompra(idCompras);
+
+        if (detalles.isEmpty()) {
+            return ESTADO_PENDIENTE;
+        }
+
+        boolean tieneRecibido = false;
+        boolean todoCompleto = true;
+
+        for (RecepcionDetalleItemResponse detalle : detalles) {
+            if (detalle.getTotalRecibido().compareTo(BigDecimal.ZERO) > 0) {
+                tieneRecibido = true;
+            }
+
+            if (detalle.getTotalRecibido().compareTo(detalle.getPesoComprado()) < 0) {
+                todoCompleto = false;
+            }
+        }
+
+        if (todoCompleto) {
+            return ESTADO_COMPLETA;
+        }
+
+        if (tieneRecibido) {
+            return ESTADO_COMPLETA_PARCIAL;
+        }
+
+        return ESTADO_PENDIENTE;
+    }
+
+    private List<RecepcionDetalleItemResponse> obtenerDetallesCompra(Integer idCompras) {
+        return compraDetalleRepository
+                .findByCompra_IdComprasAndFlgActivoTrueOrderByIdCompraDetalleAsc(idCompras)
+                .stream()
+                .map(this::toDetalleCompraResponse)
+                .toList();
+    }
+
+    private RecepcionDetalleItemResponse toDetalleCompraResponse(CompraDetalle compraDetalle) {
+        BigDecimal totalRecibido = recepcionDetalleRepository
+                .sumarRecibidoPorCompraDetalle(compraDetalle.getIdCompraDetalle());
+
+        BigDecimal pesoPendiente = compraDetalle.getPeso().subtract(totalRecibido);
+
+        RecepcionDetalleItemResponse response = new RecepcionDetalleItemResponse();
+        response.setIdCompraDetalle(compraDetalle.getIdCompraDetalle());
+        response.setIdArticulo(compraDetalle.getArticulo().getIdArticulo());
+        response.setArticulo(compraDetalle.getArticulo().getDescripcion());
+        response.setMedida(compraDetalle.getArticulo().getMedida());
+        response.setPesoComprado(compraDetalle.getPeso());
+        response.setTotalRecibido(totalRecibido);
+        response.setPesoPendiente(pesoPendiente);
+        response.setCostoKilo(compraDetalle.getCostoKilo());
+        response.setCostoTotal(compraDetalle.getCostoTotal());
+        response.setEstado(
+                pesoPendiente.compareTo(BigDecimal.ZERO) == 0
+                        ? ESTADO_COMPLETA
+                        : ESTADO_COMPLETA_PARCIAL
+        );
+        return response;
+    }
+
     private RecepcionResponse toResponse(Recepcion recepcion) {
+        List<RecepcionDetalleItemResponse> detalles = recepcionDetalleRepository
+                .findByRecepcion_IdRecepcionesAndFlgActivoTrueOrderByIdRecepcionDetalleAsc(
+                        recepcion.getIdRecepciones()
+                )
+                .stream()
+                .map(detalle -> {
+                    RecepcionDetalleItemResponse response = new RecepcionDetalleItemResponse();
+                    response.setIdRecepcionDetalle(detalle.getIdRecepcionDetalle());
+                    response.setIdCompraDetalle(detalle.getCompraDetalle().getIdCompraDetalle());
+                    response.setIdArticulo(detalle.getCompraDetalle().getArticulo().getIdArticulo());
+                    response.setArticulo(detalle.getCompraDetalle().getArticulo().getDescripcion());
+                    response.setMedida(detalle.getCompraDetalle().getArticulo().getMedida());
+                    response.setPesoComprado(detalle.getCompraDetalle().getPeso());
+                    response.setRecibido(detalle.getRecibido());
+                    response.setCostoKilo(detalle.getCompraDetalle().getCostoKilo());
+                    response.setCostoTotal(detalle.getCompraDetalle().getCostoTotal());
+                    response.setEstado(detalle.getEstado());
+                    return response;
+                })
+                .toList();
+
         RecepcionResponse response = new RecepcionResponse();
         response.setIdRecepciones(recepcion.getIdRecepciones());
         response.setFechaRecepcion(recepcion.getFechaRecepcion());
@@ -144,20 +289,53 @@ public class RecepcionServiceImpl implements RecepcionService {
         response.setEstadoCompra(recepcion.getCompra().getEstado());
         response.setRazonSocial(recepcion.getCompra().getProveedor().getRazonSocial());
         response.setRuc(recepcion.getCompra().getProveedor().getRuc());
-        response.setArticulo(recepcion.getCompra().getArticulo().getDescripcion());
-        response.setMedida(recepcion.getCompra().getArticulo().getMedida());
+        response.setDetalles(detalles);
+
+        if (!detalles.isEmpty()) {
+            response.setArticulo(
+                    detalles.stream()
+                            .map(RecepcionDetalleItemResponse::getArticulo)
+                            .distinct()
+                            .reduce((a, b) -> a + ", " + b)
+                            .orElse("-")
+            );
+            response.setMedida(detalles.get(0).getMedida());
+        }
+
         return response;
     }
 
     private RecepcionResponse toCompraPendienteResponse(Compra compra) {
+        List<RecepcionDetalleItemResponse> detalles = obtenerDetallesCompra(compra.getIdCompras());
+
+        BigDecimal pesoComprado = detalles.stream()
+                .map(RecepcionDetalleItemResponse::getPesoComprado)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalRecibido = detalles.stream()
+                .map(RecepcionDetalleItemResponse::getTotalRecibido)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
         RecepcionResponse response = new RecepcionResponse();
         response.setIdCompras(compra.getIdCompras());
-        response.setPesoComprado(compra.getPeso());
+        response.setPesoComprado(pesoComprado);
+        response.setRecibido(totalRecibido);
         response.setEstadoCompra(compra.getEstado());
         response.setRazonSocial(compra.getProveedor().getRazonSocial());
         response.setRuc(compra.getProveedor().getRuc());
-        response.setArticulo(compra.getArticulo().getDescripcion());
-        response.setMedida(compra.getArticulo().getMedida());
+        response.setDetalles(detalles);
+
+        if (!detalles.isEmpty()) {
+            response.setArticulo(
+                    detalles.stream()
+                            .map(RecepcionDetalleItemResponse::getArticulo)
+                            .distinct()
+                            .reduce((a, b) -> a + ", " + b)
+                            .orElse("-")
+            );
+            response.setMedida(detalles.get(0).getMedida());
+        }
+
         return response;
     }
 }

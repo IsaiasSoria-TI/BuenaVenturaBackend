@@ -1,25 +1,22 @@
 package com.buenaventura.erp.compras.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class CompraRequest {
-
-    @NotNull(message = "El impuesto es obligatorio")
-    private Integer idImpuesto;
 
     @NotNull(message = "La condición de pago es obligatoria")
     private Integer idPago;
 
     @NotNull(message = "El proveedor es obligatorio")
     private Integer idProveedor;
-
-    @NotNull(message = "El artículo es obligatorio")
-    private Integer idArticulo;
 
     @NotNull(message = "La fecha de compra es obligatoria")
     private LocalDateTime fechaCompras;
@@ -31,23 +28,15 @@ public class CompraRequest {
     @DecimalMin(value = "0.00", inclusive = true, message = "Las hectáreas no pueden ser negativas")
     private BigDecimal hectareas;
 
-    @NotNull(message = "El peso es obligatorio")
-    @DecimalMin(value = "0.01", message = "El peso debe ser mayor a 0")
-    private BigDecimal peso;
+    @Valid
+    @NotEmpty(message = "Debe agregar al menos un artículo")
+    private List<CompraDetalleRequest> detalles;
 
-    @NotNull(message = "El costo por kilo es obligatorio")
-    @DecimalMin(value = "0.01", message = "El costo por kilo debe ser mayor a 0")
-    private BigDecimal costoKilo;
+    @Valid
+    @NotEmpty(message = "Debe agregar al menos un impuesto")
+    private List<CompraImpuestoRequest> impuestos;
 
     public CompraRequest() {
-    }
-
-    public Integer getIdImpuesto() {
-        return idImpuesto;
-    }
-
-    public void setIdImpuesto(Integer idImpuesto) {
-        this.idImpuesto = idImpuesto;
     }
 
     public Integer getIdPago() {
@@ -64,14 +53,6 @@ public class CompraRequest {
 
     public void setIdProveedor(Integer idProveedor) {
         this.idProveedor = idProveedor;
-    }
-
-    public Integer getIdArticulo() {
-        return idArticulo;
-    }
-
-    public void setIdArticulo(Integer idArticulo) {
-        this.idArticulo = idArticulo;
     }
 
     public LocalDateTime getFechaCompras() {
@@ -98,19 +79,19 @@ public class CompraRequest {
         this.hectareas = hectareas;
     }
 
-    public BigDecimal getPeso() {
-        return peso;
+    public List<CompraDetalleRequest> getDetalles() {
+        return detalles;
     }
 
-    public void setPeso(BigDecimal peso) {
-        this.peso = peso;
+    public void setDetalles(List<CompraDetalleRequest> detalles) {
+        this.detalles = detalles;
     }
 
-    public BigDecimal getCostoKilo() {
-        return costoKilo;
+    public List<CompraImpuestoRequest> getImpuestos() {
+        return impuestos;
     }
 
-    public void setCostoKilo(BigDecimal costoKilo) {
-        this.costoKilo = costoKilo;
+    public void setImpuestos(List<CompraImpuestoRequest> impuestos) {
+        this.impuestos = impuestos;
     }
 }

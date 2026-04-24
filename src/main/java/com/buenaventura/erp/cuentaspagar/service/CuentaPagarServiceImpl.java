@@ -8,12 +8,17 @@ import com.buenaventura.erp.cuentaspagar.dto.CuentaPagarRecepcionDisponibleRespo
 import com.buenaventura.erp.cuentaspagar.dto.CuentaPagarRequest;
 import com.buenaventura.erp.cuentaspagar.dto.CuentaPagarResponse;
 import com.buenaventura.erp.cuentaspagar.entity.CuentaPagar;
+import com.buenaventura.erp.cuentaspagar.entity.CuentaPagarDetalle;
+import com.buenaventura.erp.cuentaspagar.repository.CuentaPagarDetalleRepository;
 import com.buenaventura.erp.cuentaspagar.repository.CuentaPagarRepository;
 import com.buenaventura.erp.recepciones.entity.Recepcion;
+import com.buenaventura.erp.recepciones.entity.RecepcionDetalle;
+import com.buenaventura.erp.recepciones.repository.RecepcionDetalleRepository;
 import com.buenaventura.erp.recepciones.repository.RecepcionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -26,15 +31,21 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
     private static final String ESTADO_COMPLETA = "Completa";
 
     private final CuentaPagarRepository cuentaPagarRepository;
+    private final CuentaPagarDetalleRepository cuentaPagarDetalleRepository;
     private final CompraRepository compraRepository;
     private final RecepcionRepository recepcionRepository;
+    private final RecepcionDetalleRepository recepcionDetalleRepository;
 
     public CuentaPagarServiceImpl(CuentaPagarRepository cuentaPagarRepository,
+                                  CuentaPagarDetalleRepository cuentaPagarDetalleRepository,
                                   CompraRepository compraRepository,
-                                  RecepcionRepository recepcionRepository) {
+                                  RecepcionRepository recepcionRepository,
+                                  RecepcionDetalleRepository recepcionDetalleRepository) {
         this.cuentaPagarRepository = cuentaPagarRepository;
+        this.cuentaPagarDetalleRepository = cuentaPagarDetalleRepository;
         this.compraRepository = compraRepository;
         this.recepcionRepository = recepcionRepository;
+        this.recepcionDetalleRepository = recepcionDetalleRepository;
     }
 
     @Override
@@ -62,12 +73,13 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
         Compra compra = compraRepository.findById(idCompras)
                 .orElseThrow(() -> new RuntimeException("La compra no existe"));
 
-        List<CuentaPagarRecepcionDisponibleResponse> recepcionesDisponibles = recepcionRepository.obtenerPorCompra(idCompras)
-                .stream()
-                .filter(this::esRecepcionValidaParaCuentaPagar)
-                .filter(r -> !cuentaPagarRepository.existsByIdRecepcionesAndFlgActivoTrue(r.getIdRecepciones()))
-                .map(this::toRecepcionDisponibleResponse)
-                .toList();
+        List<CuentaPagarRecepcionDisponibleResponse> recepcionesDisponibles =
+                recepcionRepository.obtenerPorCompra(idCompras)
+                        .stream()
+                        .filter(this::esRecepcionValidaParaCuentaPagar)
+                        .filter(r -> !cuentaPagarRepository.existsByIdRecepcionesAndFlgActivoTrue(r.getIdRecepciones()))
+                        .map(this::toRecepcionDisponibleResponse)
+                        .toList();
 
         if (recepcionesDisponibles.isEmpty()) {
             throw new RuntimeException("La compra no tiene recepciones disponibles para cuentas por pagar");
@@ -86,8 +98,12 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
 
         response.setImporte(compra.getCostoTotal());
         response.setDeduccionRetencion(compra.getImporteImpuesto());
-        response.setTipoDetRet(compra.getImpuesto().getTipoImpuesto());
-        response.setPorcentajeImpuesto(compra.getImpuesto().getValor());
+
+        if (compra.getImpuesto() != null) {
+            response.setTipoDetRet(compra.getImpuesto().getTipoImpuesto());
+            response.setPorcentajeImpuesto(compra.getImpuesto().getValor());
+        }
+
         response.setCondicionPago(compra.getPago().getPago());
         response.setEstadoCompra(compra.getEstado());
         response.setRecepcionesDisponibles(recepcionesDisponibles);
@@ -148,6 +164,10 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
         cuentaPagar.setFechaActualizacion(LocalDateTime.now());
 
         CuentaPagar actualizado = cuentaPagarRepository.save(cuentaPagar);
+
+        inactivarDetallesCuentaPagar(actualizado);
+        guardarDetallesCuentaPagar(actualizado, recepcion);
+
         return toResponse(actualizado, compra, recepcion);
     }
 
@@ -160,6 +180,8 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
         cuentaPagar.setFechaActualizacion(LocalDateTime.now());
 
         cuentaPagarRepository.save(cuentaPagar);
+
+        inactivarDetallesCuentaPagar(cuentaPagar);
     }
 
     private CuentaPagarResponse registrarDetalle(
@@ -193,7 +215,52 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
         cuentaPagar.setFechaActualizacion(LocalDateTime.now());
 
         CuentaPagar guardado = cuentaPagarRepository.save(cuentaPagar);
+
+        guardarDetallesCuentaPagar(guardado, recepcion);
+
         return toResponse(guardado, compra, recepcion);
+    }
+
+    private void guardarDetallesCuentaPagar(CuentaPagar cuentaPagar, Recepcion recepcion) {
+        List<RecepcionDetalle> detallesRecepcion =
+                recepcionDetalleRepository
+                        .findByRecepcion_IdRecepcionesAndFlgActivoTrueOrderByIdRecepcionDetalleAsc(
+                                recepcion.getIdRecepciones()
+                        );
+
+        if (detallesRecepcion.isEmpty()) {
+            throw new RuntimeException("La recepción no tiene detalles para generar cuenta por pagar");
+        }
+
+        for (RecepcionDetalle recepcionDetalle : detallesRecepcion) {
+            BigDecimal importe = recepcionDetalle.getRecibido()
+                    .multiply(recepcionDetalle.getCompraDetalle().getCostoKilo());
+
+            CuentaPagarDetalle detalle = new CuentaPagarDetalle();
+            detalle.setCuentaPagar(cuentaPagar);
+            detalle.setRecepcionDetalle(recepcionDetalle);
+            detalle.setImporte(importe);
+            detalle.setEstado(ESTADO_PENDIENTE);
+            detalle.setFlgActivo(true);
+            detalle.setFechaActualizacion(LocalDateTime.now());
+
+            cuentaPagarDetalleRepository.save(detalle);
+        }
+    }
+
+    private void inactivarDetallesCuentaPagar(CuentaPagar cuentaPagar) {
+        List<CuentaPagarDetalle> detalles =
+                cuentaPagarDetalleRepository
+                        .findByCuentaPagar_IdCuentaPagarAndFlgActivoTrueOrderByIdCuentaPagarDetalleAsc(
+                                cuentaPagar.getIdCuentaPagar()
+                        );
+
+        detalles.forEach(detalle -> {
+            detalle.setFlgActivo(false);
+            detalle.setFechaActualizacion(LocalDateTime.now());
+        });
+
+        cuentaPagarDetalleRepository.saveAll(detalles);
     }
 
     private boolean tieneRecepcionesDisponiblesParaCuentaPagar(Compra compra) {
