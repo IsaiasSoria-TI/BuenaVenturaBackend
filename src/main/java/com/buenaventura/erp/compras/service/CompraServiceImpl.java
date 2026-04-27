@@ -31,6 +31,10 @@ import java.util.List;
 @Service
 public class CompraServiceImpl implements CompraService {
 
+    private static final BigDecimal CIEN = BigDecimal.valueOf(100);
+    private static final BigDecimal PORCENTAJE_IGV_DEFAULT = BigDecimal.valueOf(18).setScale(2, RoundingMode.HALF_UP);
+    private static final BigDecimal ZERO_2 = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+
     private final CompraRepository compraRepository;
     private final CompraDetalleRepository compraDetalleRepository;
     private final CompraImpuestoRepository compraImpuestoRepository;
@@ -79,8 +83,7 @@ public class CompraServiceImpl implements CompraService {
         Articulo primerArticulo = articuloRepository.findById(request.getDetalles().get(0).getIdArticulo())
                 .orElseThrow(() -> new RuntimeException("Artículo no encontrado"));
 
-        Impuesto primerImpuesto = impuestoRepository.findById(request.getImpuestos().get(0).getIdImpuesto())
-                .orElseThrow(() -> new RuntimeException("Impuesto no encontrado"));
+        Impuesto primerImpuesto = resolverImpuestoCabecera(request);
 
         Compra compra = new Compra();
         compra.setPago(pago);
@@ -97,6 +100,9 @@ public class CompraServiceImpl implements CompraService {
         compra.setCostoKilo(BigDecimal.ZERO);
         compra.setCostoTotal(BigDecimal.ZERO);
         compra.setImporteImpuesto(BigDecimal.ZERO);
+        compra.setAplicaIgv(Boolean.TRUE.equals(request.getAplicaIgv()));
+        compra.setPorcentajeIgv(resolverPorcentajeIgv(request));
+        compra.setImporteIgv(ZERO_2);
 
         Compra guardada = compraRepository.save(compra);
 
@@ -106,6 +112,9 @@ public class CompraServiceImpl implements CompraService {
         guardada.setCostoKilo(request.getDetalles().get(0).getCostoKilo());
         guardada.setCostoTotal(totales.totalGeneral());
         guardada.setImporteImpuesto(totales.totalImpuestos());
+        guardada.setAplicaIgv(totales.aplicaIgv());
+        guardada.setPorcentajeIgv(totales.porcentajeIgv());
+        guardada.setImporteIgv(totales.importeIgv());
 
         Compra actualizada = compraRepository.save(guardada);
 
@@ -137,8 +146,7 @@ public class CompraServiceImpl implements CompraService {
         Articulo primerArticulo = articuloRepository.findById(request.getDetalles().get(0).getIdArticulo())
                 .orElseThrow(() -> new RuntimeException("Artículo no encontrado"));
 
-        Impuesto primerImpuesto = impuestoRepository.findById(request.getImpuestos().get(0).getIdImpuesto())
-                .orElseThrow(() -> new RuntimeException("Impuesto no encontrado"));
+        Impuesto primerImpuesto = resolverImpuestoCabecera(request);
 
         inactivarDetalles(compra.getIdCompras());
         inactivarImpuestos(compra.getIdCompras());
@@ -152,6 +160,9 @@ public class CompraServiceImpl implements CompraService {
         compra.setHectareas(request.getHectareas());
         compra.setFechaActualizacion(LocalDateTime.now());
         compra.setEstado("Pendiente");
+        compra.setAplicaIgv(Boolean.TRUE.equals(request.getAplicaIgv()));
+        compra.setPorcentajeIgv(resolverPorcentajeIgv(request));
+        compra.setImporteIgv(ZERO_2);
 
         Compra guardada = compraRepository.save(compra);
 
@@ -161,6 +172,9 @@ public class CompraServiceImpl implements CompraService {
         guardada.setCostoKilo(request.getDetalles().get(0).getCostoKilo());
         guardada.setCostoTotal(totales.totalGeneral());
         guardada.setImporteImpuesto(totales.totalImpuestos());
+        guardada.setAplicaIgv(totales.aplicaIgv());
+        guardada.setPorcentajeIgv(totales.porcentajeIgv());
+        guardada.setImporteIgv(totales.importeIgv());
 
         Compra actualizada = compraRepository.save(guardada);
 
@@ -190,8 +204,8 @@ public class CompraServiceImpl implements CompraService {
             throw new RuntimeException("Debe agregar al menos un artículo");
         }
 
-        if (request.getImpuestos() == null || request.getImpuestos().isEmpty()) {
-            throw new RuntimeException("Debe agregar al menos un impuesto");
+        if (request.getPorcentajeIgv() != null && request.getPorcentajeIgv().compareTo(BigDecimal.ZERO) < 0) {
+            throw new RuntimeException("El porcentaje de IGV no puede ser negativo");
         }
     }
 
@@ -223,14 +237,22 @@ public class CompraServiceImpl implements CompraService {
 
         BigDecimal totalImpuestos = BigDecimal.ZERO;
 
-        for (CompraImpuestoRequest impuestoRequest : request.getImpuestos()) {
+        for (CompraImpuestoRequest impuestoRequest : obtenerImpuestosRequest(request)) {
+            if (impuestoRequest == null || impuestoRequest.getIdImpuesto() == null) {
+                continue;
+            }
+
             Impuesto impuesto = impuestoRepository.findById(impuestoRequest.getIdImpuesto())
                     .orElseThrow(() -> new RuntimeException("Impuesto no encontrado"));
 
-            BigDecimal porcentaje = BigDecimal.valueOf(impuesto.getValor());
+            if (esIgv(impuesto)) {
+                continue;
+            }
+
+            BigDecimal porcentaje = BigDecimal.valueOf(impuesto.getValor()).setScale(2, RoundingMode.HALF_UP);
             BigDecimal importe = subtotal
                     .multiply(porcentaje)
-                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                    .divide(CIEN, 2, RoundingMode.HALF_UP);
 
             CompraImpuesto compraImpuesto = new CompraImpuesto();
             compraImpuesto.setCompra(compra);
@@ -244,12 +266,63 @@ public class CompraServiceImpl implements CompraService {
             totalImpuestos = totalImpuestos.add(importe);
         }
 
+        boolean aplicaIgv = Boolean.TRUE.equals(request.getAplicaIgv());
+        BigDecimal porcentajeIgv = resolverPorcentajeIgv(request);
+        BigDecimal importeIgv = aplicaIgv
+                ? subtotal.multiply(porcentajeIgv).divide(CIEN, 2, RoundingMode.HALF_UP)
+                : ZERO_2;
+
         return new TotalesCompra(
                 pesoTotal.setScale(2, RoundingMode.HALF_UP),
                 subtotal.setScale(2, RoundingMode.HALF_UP),
                 totalImpuestos.setScale(2, RoundingMode.HALF_UP),
-                subtotal.add(totalImpuestos).setScale(2, RoundingMode.HALF_UP)
+                aplicaIgv,
+                porcentajeIgv,
+                importeIgv,
+                subtotal.add(totalImpuestos).add(importeIgv).setScale(2, RoundingMode.HALF_UP)
         );
+    }
+
+    private Impuesto resolverImpuestoCabecera(CompraRequest request) {
+        for (CompraImpuestoRequest impuestoRequest : obtenerImpuestosRequest(request)) {
+            if (impuestoRequest == null || impuestoRequest.getIdImpuesto() == null) {
+                continue;
+            }
+
+            Impuesto impuesto = impuestoRepository.findById(impuestoRequest.getIdImpuesto())
+                    .orElseThrow(() -> new RuntimeException("Impuesto no encontrado"));
+
+            if (!esIgv(impuesto)) {
+                return impuesto;
+            }
+        }
+
+        return impuestoRepository.findAll()
+                .stream()
+                .filter(impuesto -> !esIgv(impuesto))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Debe existir al menos un impuesto normal configurado"));
+    }
+
+    private List<CompraImpuestoRequest> obtenerImpuestosRequest(CompraRequest request) {
+        return request.getImpuestos() == null ? List.of() : request.getImpuestos();
+    }
+
+    private BigDecimal resolverPorcentajeIgv(CompraRequest request) {
+        BigDecimal porcentajeIgv = request.getPorcentajeIgv() == null
+                ? PORCENTAJE_IGV_DEFAULT
+                : request.getPorcentajeIgv();
+
+        return porcentajeIgv.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private boolean esIgv(Impuesto impuesto) {
+        if (impuesto == null || impuesto.getTipoImpuesto() == null) {
+            return false;
+        }
+
+        String tipoNormalizado = impuesto.getTipoImpuesto().trim().replace(".", "").replace(" ", "");
+        return "IGV".equalsIgnoreCase(tipoNormalizado);
     }
 
     private void inactivarDetalles(Integer idCompras) {
@@ -295,6 +368,9 @@ public class CompraServiceImpl implements CompraService {
         response.setPeso(compra.getPeso());
         response.setCostoTotal(compra.getCostoTotal());
         response.setImporteImpuesto(compra.getImporteImpuesto());
+        response.setAplicaIgv(Boolean.TRUE.equals(compra.getAplicaIgv()));
+        response.setPorcentajeIgv(compra.getPorcentajeIgv() == null ? PORCENTAJE_IGV_DEFAULT : compra.getPorcentajeIgv());
+        response.setImporteIgv(compra.getImporteIgv() == null ? ZERO_2 : compra.getImporteIgv());
         response.setTotalGeneral(compra.getCostoTotal());
         response.setEstado(compra.getEstado());
 
@@ -326,6 +402,7 @@ public class CompraServiceImpl implements CompraService {
         return compraImpuestoRepository
                 .findByCompra_IdComprasAndFlgActivoTrueOrderByIdCompraImpuestoAsc(idCompras)
                 .stream()
+                .filter(impuesto -> !esIgv(impuesto.getImpuesto()))
                 .map(impuesto -> {
                     CompraImpuestoResponse response = new CompraImpuestoResponse();
                     response.setIdCompraImpuesto(impuesto.getIdCompraImpuesto());
@@ -342,6 +419,9 @@ public class CompraServiceImpl implements CompraService {
             BigDecimal pesoTotal,
             BigDecimal subtotal,
             BigDecimal totalImpuestos,
+            boolean aplicaIgv,
+            BigDecimal porcentajeIgv,
+            BigDecimal importeIgv,
             BigDecimal totalGeneral
     ) {
     }

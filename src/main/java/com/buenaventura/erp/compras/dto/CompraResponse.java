@@ -23,6 +23,9 @@ public class CompraResponse {
     private BigDecimal peso;
     private BigDecimal costoTotal;
     private BigDecimal importeImpuesto;
+    private Boolean aplicaIgv;
+    private BigDecimal porcentajeIgv;
+    private BigDecimal importeIgv;
     private BigDecimal totalGeneral;
 
     private String estado;
@@ -135,6 +138,30 @@ public class CompraResponse {
 
     public void setImporteImpuesto(BigDecimal importeImpuesto) {
         this.importeImpuesto = importeImpuesto;
+    }
+
+    public Boolean getAplicaIgv() {
+        return aplicaIgv;
+    }
+
+    public void setAplicaIgv(Boolean aplicaIgv) {
+        this.aplicaIgv = aplicaIgv;
+    }
+
+    public BigDecimal getPorcentajeIgv() {
+        return porcentajeIgv;
+    }
+
+    public void setPorcentajeIgv(BigDecimal porcentajeIgv) {
+        this.porcentajeIgv = porcentajeIgv;
+    }
+
+    public BigDecimal getImporteIgv() {
+        return importeIgv;
+    }
+
+    public void setImporteIgv(BigDecimal importeIgv) {
+        this.importeIgv = importeIgv;
     }
 
     public BigDecimal getTotalGeneral() {

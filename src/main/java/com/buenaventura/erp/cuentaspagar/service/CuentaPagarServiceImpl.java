@@ -4,6 +4,7 @@ import com.buenaventura.erp.compras.entity.Compra;
 import com.buenaventura.erp.compras.repository.CompraRepository;
 import com.buenaventura.erp.cuentaspagar.dto.CompraValidaResponse;
 import com.buenaventura.erp.cuentaspagar.dto.CuentaPagarDetalleCompraResponse;
+import com.buenaventura.erp.cuentaspagar.dto.CuentaPagarDetalleResponse;
 import com.buenaventura.erp.cuentaspagar.dto.CuentaPagarRecepcionDisponibleResponse;
 import com.buenaventura.erp.cuentaspagar.dto.CuentaPagarRequest;
 import com.buenaventura.erp.cuentaspagar.dto.CuentaPagarResponse;
@@ -354,6 +355,7 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
 
     private CuentaPagarResponse toResponse(CuentaPagar cuentaPagar, Compra compra, Recepcion recepcion) {
         CuentaPagarResponse response = new CuentaPagarResponse();
+
         response.setIdCuentaPagar(cuentaPagar.getIdCuentaPagar());
         response.setIdCompras(cuentaPagar.getIdCompras());
         response.setIdRecepciones(cuentaPagar.getIdRecepciones());
@@ -376,6 +378,58 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
 
         if (recepcion != null) {
             response.setEstadoRecepcion(recepcion.getEstado());
+        }
+
+        List<CuentaPagarDetalleResponse> detalles = cuentaPagarDetalleRepository
+                .findByCuentaPagar_IdCuentaPagarAndFlgActivoTrueOrderByIdCuentaPagarDetalleAsc(
+                        cuentaPagar.getIdCuentaPagar()
+                )
+                .stream()
+                .map(this::toDetalleResponse)
+                .toList();
+
+        response.setDetalles(detalles);
+
+        if ((response.getArticulo() == null || response.getArticulo().isBlank()) && !detalles.isEmpty()) {
+            response.setArticulo(
+                    detalles.stream()
+                            .map(CuentaPagarDetalleResponse::getArticulo)
+                            .filter(articulo -> articulo != null && !articulo.isBlank())
+                            .distinct()
+                            .reduce((a, b) -> a + ", " + b)
+                            .orElse("Varios artículos")
+            );
+        }
+
+        return response;
+    }
+
+    private CuentaPagarDetalleResponse toDetalleResponse(CuentaPagarDetalle detalle) {
+        CuentaPagarDetalleResponse response = new CuentaPagarDetalleResponse();
+
+        response.setIdCuentaPagarDetalle(detalle.getIdCuentaPagarDetalle());
+        response.setImporte(detalle.getImporte());
+        response.setEstado(detalle.getEstado());
+
+        if (detalle.getRecepcionDetalle() != null) {
+            response.setIdRecepcionDetalle(detalle.getRecepcionDetalle().getIdRecepcionDetalle());
+            response.setRecibido(detalle.getRecepcionDetalle().getRecibido());
+
+            if (detalle.getRecepcionDetalle().getCompraDetalle() != null) {
+                response.setCostoKilo(detalle.getRecepcionDetalle().getCompraDetalle().getCostoKilo());
+
+                if (detalle.getRecepcionDetalle().getCompraDetalle().getArticulo() != null) {
+                    response.setIdArticulo(
+                            detalle.getRecepcionDetalle().getCompraDetalle().getArticulo().getIdArticulo()
+                    );
+                    response.setArticulo(
+                            detalle.getRecepcionDetalle().getCompraDetalle().getArticulo().getDescripcion()
+                    );
+                    response.setMedida(
+                            detalle.getRecepcionDetalle().getCompraDetalle().getArticulo().getMedida()
+                    );
+                }
+            }
         }
 
         return response;

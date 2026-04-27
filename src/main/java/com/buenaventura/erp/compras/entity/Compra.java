@@ -19,7 +19,7 @@ public class Compra {
     private Integer idCompras;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "IdImpuesto", nullable = false)
+    @JoinColumn(name = "IdImpuesto")
     private Impuesto impuesto;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -54,6 +54,15 @@ public class Compra {
 
     @Column(name = "ImporteImpuesto", nullable = false, precision = 10, scale = 2)
     private BigDecimal importeImpuesto;
+
+    @Column(name = "AplicaIGV")
+    private Boolean aplicaIgv;
+
+    @Column(name = "PorcentajeIGV", precision = 10, scale = 2)
+    private BigDecimal porcentajeIgv;
+
+    @Column(name = "ImporteIGV", precision = 10, scale = 2)
+    private BigDecimal importeIgv;
 
     @Column(name = "FlgActivo")
     private Boolean flgActivo;
@@ -164,6 +173,30 @@ public class Compra {
 
     public void setImporteImpuesto(BigDecimal importeImpuesto) {
         this.importeImpuesto = importeImpuesto;
+    }
+
+    public Boolean getAplicaIgv() {
+        return aplicaIgv;
+    }
+
+    public void setAplicaIgv(Boolean aplicaIgv) {
+        this.aplicaIgv = aplicaIgv;
+    }
+
+    public BigDecimal getPorcentajeIgv() {
+        return porcentajeIgv;
+    }
+
+    public void setPorcentajeIgv(BigDecimal porcentajeIgv) {
+        this.porcentajeIgv = porcentajeIgv;
+    }
+
+    public BigDecimal getImporteIgv() {
+        return importeIgv;
+    }
+
+    public void setImporteIgv(BigDecimal importeIgv) {
+        this.importeIgv = importeIgv;
     }
 
     public Boolean getFlgActivo() {

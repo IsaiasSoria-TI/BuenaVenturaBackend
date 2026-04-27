@@ -33,8 +33,10 @@ public class CompraRequest {
     private List<CompraDetalleRequest> detalles;
 
     @Valid
-    @NotEmpty(message = "Debe agregar al menos un impuesto")
     private List<CompraImpuestoRequest> impuestos;
+
+    private Boolean aplicaIgv;
+    private BigDecimal porcentajeIgv;
 
     public CompraRequest() {
     }
@@ -93,5 +95,21 @@ public class CompraRequest {
 
     public void setImpuestos(List<CompraImpuestoRequest> impuestos) {
         this.impuestos = impuestos;
+    }
+
+    public Boolean getAplicaIgv() {
+        return aplicaIgv;
+    }
+
+    public void setAplicaIgv(Boolean aplicaIgv) {
+        this.aplicaIgv = aplicaIgv;
+    }
+
+    public BigDecimal getPorcentajeIgv() {
+        return porcentajeIgv;
+    }
+
+    public void setPorcentajeIgv(BigDecimal porcentajeIgv) {
+        this.porcentajeIgv = porcentajeIgv;
     }
 }

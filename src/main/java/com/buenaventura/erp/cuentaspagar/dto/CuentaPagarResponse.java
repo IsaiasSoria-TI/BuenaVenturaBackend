@@ -1,6 +1,7 @@
 package com.buenaventura.erp.cuentaspagar.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class CuentaPagarResponse {
 
@@ -18,6 +19,7 @@ public class CuentaPagarResponse {
     private String ruc;
     private String articulo;
     private String estadoRecepcion;
+    private List<CuentaPagarDetalleResponse> detalles;
 
     public CuentaPagarResponse() {
     }
@@ -132,5 +134,13 @@ public class CuentaPagarResponse {
 
     public void setEstadoRecepcion(String estadoRecepcion) {
         this.estadoRecepcion = estadoRecepcion;
+    }
+
+    public List<CuentaPagarDetalleResponse> getDetalles() {
+        return detalles;
+    }
+
+    public void setDetalles(List<CuentaPagarDetalleResponse> detalles) {
+        this.detalles = detalles;
     }
 }
