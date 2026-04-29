@@ -280,7 +280,7 @@ public class CompraServiceImpl implements CompraService {
                 aplicaIgv,
                 porcentajeIgv,
                 importeIgv,
-                baseImpuestos.subtract(totalImpuestos).setScale(2, RoundingMode.HALF_UP)
+                baseImpuestos.setScale(2, RoundingMode.HALF_UP)
         );
     }
 
