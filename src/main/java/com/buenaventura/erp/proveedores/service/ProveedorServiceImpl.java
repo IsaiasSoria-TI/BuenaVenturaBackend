@@ -8,6 +8,8 @@ import com.buenaventura.erp.proveedores.dto.ProveedorRequest;
 import com.buenaventura.erp.proveedores.dto.ProveedorResponse;
 import com.buenaventura.erp.proveedores.entity.Proveedor;
 import com.buenaventura.erp.proveedores.repository.ProveedorRepository;
+import com.buenaventura.erp.proveedores.tipoproveedor.entity.TipoProveedor;
+import com.buenaventura.erp.proveedores.tipoproveedor.repository.TipoProveedorRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,15 +22,18 @@ public class ProveedorServiceImpl implements ProveedorService {
     private final ProveedorRepository proveedorRepository;
     private final BancoProveedorRepository bancoProveedorRepository;
     private final BancoRepository bancoRepository;
+    private final TipoProveedorRepository tipoProveedorRepository;
 
     public ProveedorServiceImpl(
             ProveedorRepository proveedorRepository,
             BancoProveedorRepository bancoProveedorRepository,
-            BancoRepository bancoRepository
+            BancoRepository bancoRepository,
+            TipoProveedorRepository tipoProveedorRepository
     ) {
         this.proveedorRepository = proveedorRepository;
         this.bancoProveedorRepository = bancoProveedorRepository;
         this.bancoRepository = bancoRepository;
+        this.tipoProveedorRepository = tipoProveedorRepository;
     }
 
     @Override
@@ -53,6 +58,9 @@ public class ProveedorServiceImpl implements ProveedorService {
         proveedor.setCorreo(request.getCorreo());
         proveedor.setDireccion(request.getDireccion());
         proveedor.setRepresentante(request.getRepresentante());
+        proveedor.setDepartamento(request.getDepartamento());
+        proveedor.setProvincia(request.getProvincia());
+        proveedor.setIdTipoProveedor(request.getIdTipoProveedor());
         proveedor.setFlgActivo(true);
         proveedor.setFechaActualizacion(LocalDateTime.now());
 
@@ -80,6 +88,9 @@ public class ProveedorServiceImpl implements ProveedorService {
         proveedor.setCorreo(request.getCorreo());
         proveedor.setDireccion(request.getDireccion());
         proveedor.setRepresentante(request.getRepresentante());
+        proveedor.setDepartamento(request.getDepartamento());
+        proveedor.setProvincia(request.getProvincia());
+        proveedor.setIdTipoProveedor(request.getIdTipoProveedor());
         proveedor.setFechaActualizacion(LocalDateTime.now());
 
         Proveedor actualizado = proveedorRepository.save(proveedor);
@@ -107,7 +118,9 @@ public class ProveedorServiceImpl implements ProveedorService {
     }
 
     private void guardarBancoProveedor(Integer idProveedor, ProveedorRequest request) {
-        if (request.getIdBanco() == null) return;
+        if (request.getIdBanco() == null) {
+            return;
+        }
 
         Banco banco = bancoRepository.findById(request.getIdBanco())
                 .orElseThrow(() -> new RuntimeException("Banco no encontrado con id: " + request.getIdBanco()));
@@ -127,6 +140,7 @@ public class ProveedorServiceImpl implements ProveedorService {
 
     private ProveedorResponse toResponse(Proveedor proveedor) {
         ProveedorResponse response = new ProveedorResponse();
+
         response.setIdProveedor(proveedor.getIdProveedor());
         response.setRuc(proveedor.getRuc());
         response.setRazonSocial(proveedor.getRazonSocial());
@@ -135,6 +149,20 @@ public class ProveedorServiceImpl implements ProveedorService {
         response.setDireccion(proveedor.getDireccion());
         response.setRepresentante(proveedor.getRepresentante());
         response.setFlgActivo(proveedor.getFlgActivo());
+
+        // NUEVOS CAMPOS
+        response.setDepartamento(proveedor.getDepartamento());
+        response.setProvincia(proveedor.getProvincia());
+        response.setIdTipoProveedor(proveedor.getIdTipoProveedor());
+
+        if (proveedor.getIdTipoProveedor() != null) {
+            TipoProveedor tipoProveedor = tipoProveedorRepository
+                    .findById(proveedor.getIdTipoProveedor())
+                    .orElse(null);
+            if (tipoProveedor != null) {
+                response.setNombreTipoProveedor(tipoProveedor.getNombre());
+            }
+        }
 
         bancoProveedorRepository.findByIdProveedorAndFlgActivo(proveedor.getIdProveedor(), true)
                 .ifPresent(bp -> {

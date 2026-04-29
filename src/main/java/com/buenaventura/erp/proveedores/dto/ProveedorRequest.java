@@ -3,7 +3,6 @@ package com.buenaventura.erp.proveedores.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
 
 public class ProveedorRequest {
 
@@ -33,6 +32,9 @@ public class ProveedorRequest {
     private Integer idBanco;
     private String cuentaBancaria;
     private String cuentaInterbancaria;
+    private String departamento;
+    private String provincia;
+    private Integer idTipoProveedor;
 
     public ProveedorRequest() {
     }
@@ -115,5 +117,30 @@ public class ProveedorRequest {
 
     public void setCuentaInterbancaria(String cuentaInterbancaria) {
         this.cuentaInterbancaria = cuentaInterbancaria;
+    }
+
+    // 👇 LO QUE FALTABA
+    public String getDepartamento() {
+        return departamento;
+    }
+
+    public void setDepartamento(String departamento) {
+        this.departamento = departamento;
+    }
+
+    public String getProvincia() {
+        return provincia;
+    }
+
+    public void setProvincia(String provincia) {
+        this.provincia = provincia;
+    }
+
+    public Integer getIdTipoProveedor() {
+        return idTipoProveedor;
+    }
+
+    public void setIdTipoProveedor(Integer idTipoProveedor) {
+        this.idTipoProveedor = idTipoProveedor;
     }
 }

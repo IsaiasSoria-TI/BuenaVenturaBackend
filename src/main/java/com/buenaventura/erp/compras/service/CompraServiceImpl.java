@@ -235,6 +235,13 @@ public class CompraServiceImpl implements CompraService {
             pesoTotal = pesoTotal.add(detalleRequest.getPeso());
         }
 
+        boolean aplicaIgv = Boolean.TRUE.equals(request.getAplicaIgv());
+        BigDecimal porcentajeIgv = resolverPorcentajeIgv(request);
+        BigDecimal importeIgv = aplicaIgv
+                ? subtotal.multiply(porcentajeIgv).divide(CIEN, 2, RoundingMode.HALF_UP)
+                : ZERO_2;
+        BigDecimal baseImpuestos = subtotal.add(importeIgv);
+
         BigDecimal totalImpuestos = BigDecimal.ZERO;
 
         for (CompraImpuestoRequest impuestoRequest : obtenerImpuestosRequest(request)) {
@@ -250,7 +257,7 @@ public class CompraServiceImpl implements CompraService {
             }
 
             BigDecimal porcentaje = BigDecimal.valueOf(impuesto.getValor()).setScale(2, RoundingMode.HALF_UP);
-            BigDecimal importe = subtotal
+            BigDecimal importe = baseImpuestos
                     .multiply(porcentaje)
                     .divide(CIEN, 2, RoundingMode.HALF_UP);
 
@@ -266,12 +273,6 @@ public class CompraServiceImpl implements CompraService {
             totalImpuestos = totalImpuestos.add(importe);
         }
 
-        boolean aplicaIgv = Boolean.TRUE.equals(request.getAplicaIgv());
-        BigDecimal porcentajeIgv = resolverPorcentajeIgv(request);
-        BigDecimal importeIgv = aplicaIgv
-                ? subtotal.multiply(porcentajeIgv).divide(CIEN, 2, RoundingMode.HALF_UP)
-                : ZERO_2;
-
         return new TotalesCompra(
                 pesoTotal.setScale(2, RoundingMode.HALF_UP),
                 subtotal.setScale(2, RoundingMode.HALF_UP),
@@ -279,7 +280,7 @@ public class CompraServiceImpl implements CompraService {
                 aplicaIgv,
                 porcentajeIgv,
                 importeIgv,
-                subtotal.add(totalImpuestos).add(importeIgv).setScale(2, RoundingMode.HALF_UP)
+                baseImpuestos.subtract(totalImpuestos).setScale(2, RoundingMode.HALF_UP)
         );
     }
 
@@ -297,11 +298,7 @@ public class CompraServiceImpl implements CompraService {
             }
         }
 
-        return impuestoRepository.findAll()
-                .stream()
-                .filter(impuesto -> !esIgv(impuesto))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Debe existir al menos un impuesto normal configurado"));
+        return null;
     }
 
     private List<CompraImpuestoRequest> obtenerImpuestosRequest(CompraRequest request) {

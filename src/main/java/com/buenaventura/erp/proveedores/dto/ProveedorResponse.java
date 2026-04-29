@@ -10,8 +10,11 @@ public class ProveedorResponse {
     private String direccion;
     private String representante;
     private Boolean flgActivo;
+    private String departamento;
+    private String provincia;
+    private Integer idTipoProveedor;
+    private String nombreTipoProveedor;
 
-    // 👇 CAMPOS DE BANCO
     private Integer idBanco;
     private String nombreBanco;
     private String cuentaBancaria;
@@ -82,6 +85,38 @@ public class ProveedorResponse {
 
     public void setFlgActivo(Boolean flgActivo) {
         this.flgActivo = flgActivo;
+    }
+
+    public String getDepartamento() {
+        return departamento;
+    }
+
+    public void setDepartamento(String departamento) {
+        this.departamento = departamento;
+    }
+
+    public String getProvincia() {
+        return provincia;
+    }
+
+    public void setProvincia(String provincia) {
+        this.provincia = provincia;
+    }
+
+    public Integer getIdTipoProveedor() {
+        return idTipoProveedor;
+    }
+
+    public void setIdTipoProveedor(Integer idTipoProveedor) {
+        this.idTipoProveedor = idTipoProveedor;
+    }
+
+    public String getNombreTipoProveedor() {
+        return nombreTipoProveedor;
+    }
+
+    public void setNombreTipoProveedor(String nombreTipoProveedor) {
+        this.nombreTipoProveedor = nombreTipoProveedor;
     }
 
     public Integer getIdBanco() {

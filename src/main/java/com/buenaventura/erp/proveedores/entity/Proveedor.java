@@ -40,6 +40,15 @@ public class Proveedor {
     @Column(name = "FechaActualizacion")
     private LocalDateTime fechaActualizacion;
 
+    @Column(name = "Departamento", length = 100)
+    private String departamento;
+
+    @Column(name = "Provincia", length = 100)
+    private String provincia;
+
+    @Column(name = "IdTipoProveedor")
+    private Integer idTipoProveedor;
+
     public Proveedor() {
     }
 
@@ -121,5 +130,29 @@ public class Proveedor {
 
     public void setFechaActualizacion(LocalDateTime fechaActualizacion) {
         this.fechaActualizacion = fechaActualizacion;
+    }
+
+    public String getDepartamento() {
+        return departamento;
+    }
+
+    public void setDepartamento(String departamento) {
+        this.departamento = departamento;
+    }
+
+    public String getProvincia() {
+        return provincia;
+    }
+
+    public void setProvincia(String provincia) {
+        this.provincia = provincia;
+    }
+
+    public Integer getIdTipoProveedor() {
+        return idTipoProveedor;
+    }
+
+    public void setIdTipoProveedor(Integer idTipoProveedor) {
+        this.idTipoProveedor = idTipoProveedor;
     }
 }
