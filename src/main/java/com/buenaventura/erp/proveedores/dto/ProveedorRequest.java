@@ -15,8 +15,7 @@ public class ProveedorRequest {
     @NotBlank(message = "La razón social es obligatoria")
     private String razonSocial;
 
-    @NotBlank(message = "El teléfono es obligatorio")
-    @Pattern(regexp = "^[0-9]{9}$", message = "El teléfono debe tener 9 dígitos")
+    @Pattern(regexp = "^$|^[0-9]{9}$", message = "El teléfono debe tener 9 dígitos")
     private String telefono;
 
     @Email(message = "El correo no es válido")
@@ -25,7 +24,6 @@ public class ProveedorRequest {
     @NotBlank(message = "La dirección es obligatoria")
     private String direccion;
 
-    @NotBlank(message = "El representante es obligatorio")
     private String representante;
 
     // 👇 NUEVOS CAMPOS
