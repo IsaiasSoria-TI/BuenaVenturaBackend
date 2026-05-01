@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class ProveedorServiceImpl implements ProveedorService {
@@ -51,6 +52,8 @@ public class ProveedorServiceImpl implements ProveedorService {
             throw new RuntimeException("Ya existe un proveedor con ese RUC");
         }
 
+        validarCuentasBancarias(null, request);
+
         Proveedor proveedor = new Proveedor();
         proveedor.setRuc(request.getRuc());
         proveedor.setRazonSocial(request.getRazonSocial());
@@ -81,6 +84,8 @@ public class ProveedorServiceImpl implements ProveedorService {
                 && proveedorRepository.existsByRuc(request.getRuc())) {
             throw new RuntimeException("Ya existe otro proveedor con ese RUC");
         }
+
+        validarCuentasBancarias(id, request);
 
         proveedor.setRuc(request.getRuc());
         proveedor.setRazonSocial(request.getRazonSocial());
@@ -131,11 +136,40 @@ public class ProveedorServiceImpl implements ProveedorService {
 
         bancoProveedor.setIdProveedor(idProveedor);
         bancoProveedor.setIdBanco(banco.getIdBanco());
-        bancoProveedor.setCuentaBancaria(request.getCuentaBancaria());
-        bancoProveedor.setCuentaInterbancaria(request.getCuentaInterbancaria());
+        bancoProveedor.setCuentaBancaria(normalizarCuenta(request.getCuentaBancaria()));
+        bancoProveedor.setCuentaInterbancaria(normalizarCuenta(request.getCuentaInterbancaria()));
         bancoProveedor.setFlgActivo(true);
 
         bancoProveedorRepository.save(bancoProveedor);
+    }
+
+    private void validarCuentasBancarias(Integer idProveedor, ProveedorRequest request) {
+        String cuentaBancaria = normalizarCuenta(request.getCuentaBancaria());
+        String cuentaInterbancaria = normalizarCuenta(request.getCuentaInterbancaria());
+
+        if (cuentaBancaria != null) {
+            bancoProveedorRepository.findFirstByCuentaBancariaAndFlgActivoTrue(cuentaBancaria)
+                    .filter(bp -> !Objects.equals(bp.getIdProveedor(), idProveedor))
+                    .ifPresent(bp -> {
+                        throw new RuntimeException("La cuenta bancaria ya está registrada en otro proveedor");
+                    });
+        }
+
+        if (cuentaInterbancaria != null) {
+            bancoProveedorRepository.findFirstByCuentaInterbancariaAndFlgActivoTrue(cuentaInterbancaria)
+                    .filter(bp -> !Objects.equals(bp.getIdProveedor(), idProveedor))
+                    .ifPresent(bp -> {
+                        throw new RuntimeException("La cuenta interbancaria ya está registrada en otro proveedor");
+                    });
+        }
+    }
+
+    private String normalizarCuenta(String cuenta) {
+        if (cuenta == null || cuenta.trim().isEmpty()) {
+            return null;
+        }
+
+        return cuenta.trim();
     }
 
     private ProveedorResponse toResponse(Proveedor proveedor) {
