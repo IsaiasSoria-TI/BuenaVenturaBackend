@@ -11,6 +11,11 @@ public class CompraResponse {
     private Integer idPago;
     private String pago;
 
+    private Integer idMoneda;
+    private String codigoMoneda;
+    private String moneda;
+    private String simboloMoneda;
+
     private Integer idProveedor;
     private String ruc;
     private String razonSocial;
@@ -18,7 +23,7 @@ public class CompraResponse {
 
     private LocalDateTime fechaCompras;
     private String zonaProduccion;
-    private BigDecimal hectareas;
+    private BigDecimal numeroLote;
 
     private BigDecimal peso;
     private BigDecimal costoTotal;
@@ -29,6 +34,7 @@ public class CompraResponse {
     private BigDecimal totalGeneral;
 
     private String estado;
+    private Boolean flgActivo;
 
     private List<CompraDetalleResponse> detalles;
     private List<CompraImpuestoResponse> impuestos;
@@ -58,6 +64,38 @@ public class CompraResponse {
 
     public void setPago(String pago) {
         this.pago = pago;
+    }
+
+    public Integer getIdMoneda() {
+        return idMoneda;
+    }
+
+    public void setIdMoneda(Integer idMoneda) {
+        this.idMoneda = idMoneda;
+    }
+
+    public String getCodigoMoneda() {
+        return codigoMoneda;
+    }
+
+    public void setCodigoMoneda(String codigoMoneda) {
+        this.codigoMoneda = codigoMoneda;
+    }
+
+    public String getMoneda() {
+        return moneda;
+    }
+
+    public void setMoneda(String moneda) {
+        this.moneda = moneda;
+    }
+
+    public String getSimboloMoneda() {
+        return simboloMoneda;
+    }
+
+    public void setSimboloMoneda(String simboloMoneda) {
+        this.simboloMoneda = simboloMoneda;
     }
 
     public Integer getIdProveedor() {
@@ -108,12 +146,12 @@ public class CompraResponse {
         this.zonaProduccion = zonaProduccion;
     }
 
-    public BigDecimal getHectareas() {
-        return hectareas;
+    public BigDecimal getNumeroLote() {
+        return numeroLote;
     }
 
-    public void setHectareas(BigDecimal hectareas) {
-        this.hectareas = hectareas;
+    public void setNumeroLote(BigDecimal numeroLote) {
+        this.numeroLote = numeroLote;
     }
 
     public BigDecimal getPeso() {
@@ -178,6 +216,14 @@ public class CompraResponse {
 
     public void setEstado(String estado) {
         this.estado = estado;
+    }
+
+    public Boolean getFlgActivo() {
+        return flgActivo;
+    }
+
+    public void setFlgActivo(Boolean flgActivo) {
+        this.flgActivo = flgActivo;
     }
 
     public List<CompraDetalleResponse> getDetalles() {

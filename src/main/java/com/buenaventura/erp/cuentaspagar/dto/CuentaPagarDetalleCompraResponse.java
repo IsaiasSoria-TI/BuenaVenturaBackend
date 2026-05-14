@@ -14,7 +14,7 @@ public class CuentaPagarDetalleCompraResponse {
     private BigDecimal importe;
     private BigDecimal deduccionRetencion;
     private String tipoDetRet;
-    private Integer porcentajeImpuesto;
+    private BigDecimal porcentajeImpuesto;
     private String condicionPago;
     private String estadoCompra;
     private List<CuentaPagarRecepcionDisponibleResponse> recepcionesDisponibles;
@@ -94,11 +94,11 @@ public class CuentaPagarDetalleCompraResponse {
         this.tipoDetRet = tipoDetRet;
     }
 
-    public Integer getPorcentajeImpuesto() {
+    public BigDecimal getPorcentajeImpuesto() {
         return porcentajeImpuesto;
     }
 
-    public void setPorcentajeImpuesto(Integer porcentajeImpuesto) {
+    public void setPorcentajeImpuesto(BigDecimal porcentajeImpuesto) {
         this.porcentajeImpuesto = porcentajeImpuesto;
     }
 

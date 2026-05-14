@@ -12,6 +12,8 @@ import com.buenaventura.erp.cuentaspagar.entity.CuentaPagar;
 import com.buenaventura.erp.cuentaspagar.entity.CuentaPagarDetalle;
 import com.buenaventura.erp.cuentaspagar.repository.CuentaPagarDetalleRepository;
 import com.buenaventura.erp.cuentaspagar.repository.CuentaPagarRepository;
+import com.buenaventura.erp.moneda.entity.Moneda;
+import com.buenaventura.erp.moneda.repository.MonedaRepository;
 import com.buenaventura.erp.recepciones.entity.Recepcion;
 import com.buenaventura.erp.recepciones.entity.RecepcionDetalle;
 import com.buenaventura.erp.recepciones.repository.RecepcionDetalleRepository;
@@ -36,17 +38,20 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
     private final CompraRepository compraRepository;
     private final RecepcionRepository recepcionRepository;
     private final RecepcionDetalleRepository recepcionDetalleRepository;
+    private final MonedaRepository monedaRepository;
 
     public CuentaPagarServiceImpl(CuentaPagarRepository cuentaPagarRepository,
                                   CuentaPagarDetalleRepository cuentaPagarDetalleRepository,
                                   CompraRepository compraRepository,
                                   RecepcionRepository recepcionRepository,
-                                  RecepcionDetalleRepository recepcionDetalleRepository) {
+                                  RecepcionDetalleRepository recepcionDetalleRepository,
+                                  MonedaRepository monedaRepository) {
         this.cuentaPagarRepository = cuentaPagarRepository;
         this.cuentaPagarDetalleRepository = cuentaPagarDetalleRepository;
         this.compraRepository = compraRepository;
         this.recepcionRepository = recepcionRepository;
         this.recepcionDetalleRepository = recepcionDetalleRepository;
+        this.monedaRepository = monedaRepository;
     }
 
     @Override
@@ -115,6 +120,7 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
     @Override
     public List<CuentaPagarResponse> registrar(CuentaPagarRequest request) {
         validarRequestRegistro(request);
+        request.setMoneda(resolverCodigoMoneda(request.getMoneda()));
 
         return request.getDetalles()
                 .stream()
@@ -134,6 +140,7 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
                 .orElseThrow(() -> new RuntimeException("Cuenta por pagar no encontrada"));
 
         CuentaPagarRequest.CuentaPagarRegistroDetalleRequest detalle = request.getDetalles().get(0);
+        String codigoMoneda = resolverCodigoMoneda(request.getMoneda());
 
         Compra compra = compraRepository.findById(detalle.getIdCompras())
                 .orElseThrow(() -> new RuntimeException("La compra no existe"));
@@ -155,7 +162,7 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
         cuentaPagar.setIdCompras(detalle.getIdCompras());
         cuentaPagar.setIdRecepciones(detalle.getIdRecepciones());
         cuentaPagar.setNumeroFactura(obtenerNumeroFactura(request, detalle));
-        cuentaPagar.setMoneda(request.getMoneda().trim());
+        cuentaPagar.setMoneda(codigoMoneda);
         cuentaPagar.setCodigoDetRet(request.getCodigoDetRet().trim());
 
         if (cuentaPagar.getEstado() == null || cuentaPagar.getEstado().isBlank()) {
@@ -305,6 +312,15 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
         }
     }
 
+    private String resolverCodigoMoneda(String codigo) {
+        String codigoNormalizado = codigo == null ? "" : codigo.trim();
+
+        Moneda moneda = monedaRepository.findByCodigoIgnoreCase(codigoNormalizado)
+                .orElseThrow(() -> new RuntimeException("La moneda seleccionada no existe"));
+
+        return moneda.getCodigo().trim();
+    }
+
     private String obtenerNumeroFactura(
             CuentaPagarRequest request,
             CuentaPagarRequest.CuentaPagarRegistroDetalleRequest detalle
@@ -331,7 +347,7 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
         }
 
         response.setZonaProduccion(compra.getZonaProduccion());
-        response.setHectareas(compra.getHectareas());
+        response.setNumeroLote(compra.getNumeroLote());
         response.setCostoKilo(compra.getCostoKilo());
         response.setCostoTotal(compra.getCostoTotal());
 

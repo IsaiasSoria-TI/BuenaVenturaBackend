@@ -1,10 +1,13 @@
 package com.buenaventura.erp.impuesto.dto;
 
+import java.math.BigDecimal;
+
 public class ImpuestoResponse {
 
     private Integer idImpuesto;
     private String tipoImpuesto;
-    private Integer valor;
+    private BigDecimal valor;
+    private Boolean flgActivo;
 
     public ImpuestoResponse() {
     }
@@ -25,11 +28,19 @@ public class ImpuestoResponse {
         this.tipoImpuesto = tipoImpuesto;
     }
 
-    public Integer getValor() {
+    public BigDecimal getValor() {
         return valor;
     }
 
-    public void setValor(Integer valor) {
+    public void setValor(BigDecimal valor) {
         this.valor = valor;
+    }
+
+    public Boolean getFlgActivo() {
+        return flgActivo;
+    }
+
+    public void setFlgActivo(Boolean flgActivo) {
+        this.flgActivo = flgActivo;
     }
 }

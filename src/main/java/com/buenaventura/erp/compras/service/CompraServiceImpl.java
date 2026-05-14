@@ -16,6 +16,8 @@ import com.buenaventura.erp.compras.repository.CompraImpuestoRepository;
 import com.buenaventura.erp.compras.repository.CompraRepository;
 import com.buenaventura.erp.impuesto.entity.Impuesto;
 import com.buenaventura.erp.impuesto.repository.ImpuestoRepository;
+import com.buenaventura.erp.moneda.entity.Moneda;
+import com.buenaventura.erp.moneda.repository.MonedaRepository;
 import com.buenaventura.erp.pago.entity.Pago;
 import com.buenaventura.erp.pago.repository.PagoRepository;
 import com.buenaventura.erp.proveedores.entity.Proveedor;
@@ -27,6 +29,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class CompraServiceImpl implements CompraService {
@@ -40,6 +44,7 @@ public class CompraServiceImpl implements CompraService {
     private final CompraImpuestoRepository compraImpuestoRepository;
     private final ImpuestoRepository impuestoRepository;
     private final PagoRepository pagoRepository;
+    private final MonedaRepository monedaRepository;
     private final ProveedorRepository proveedorRepository;
     private final ArticuloRepository articuloRepository;
 
@@ -49,6 +54,7 @@ public class CompraServiceImpl implements CompraService {
             CompraImpuestoRepository compraImpuestoRepository,
             ImpuestoRepository impuestoRepository,
             PagoRepository pagoRepository,
+            MonedaRepository monedaRepository,
             ProveedorRepository proveedorRepository,
             ArticuloRepository articuloRepository
     ) {
@@ -57,15 +63,38 @@ public class CompraServiceImpl implements CompraService {
         this.compraImpuestoRepository = compraImpuestoRepository;
         this.impuestoRepository = impuestoRepository;
         this.pagoRepository = pagoRepository;
+        this.monedaRepository = monedaRepository;
         this.proveedorRepository = proveedorRepository;
         this.articuloRepository = articuloRepository;
     }
 
     @Override
     public List<CompraResponse> listar() {
-        return compraRepository.findByFlgActivoTrueOrderByFechaComprasDesc()
+        List<Compra> compras = compraRepository.findTodasParaListado();
+        if (compras.isEmpty()) {
+            return List.of();
+        }
+
+        List<Integer> idsCompras = compras.stream()
+                .map(Compra::getIdCompras)
+                .toList();
+
+        Map<Integer, List<CompraDetalle>> detallesPorCompra = compraDetalleRepository
+                .findActivosByCompraIds(idsCompras)
                 .stream()
-                .map(this::toResponse)
+                .collect(Collectors.groupingBy(detalle -> detalle.getCompra().getIdCompras()));
+
+        Map<Integer, List<CompraImpuesto>> impuestosPorCompra = compraImpuestoRepository
+                .findActivosByCompraIds(idsCompras)
+                .stream()
+                .collect(Collectors.groupingBy(impuesto -> impuesto.getCompra().getIdCompras()));
+
+        return compras.stream()
+                .map(compra -> toResponse(
+                        compra,
+                        detallesPorCompra.getOrDefault(compra.getIdCompras(), List.of()),
+                        impuestosPorCompra.getOrDefault(compra.getIdCompras(), List.of())
+                ))
                 .toList();
     }
 
@@ -77,6 +106,9 @@ public class CompraServiceImpl implements CompraService {
         Pago pago = pagoRepository.findById(request.getIdPago())
                 .orElseThrow(() -> new RuntimeException("Condición de pago no encontrada"));
 
+        Moneda moneda = monedaRepository.findById(request.getIdMoneda())
+                .orElseThrow(() -> new RuntimeException("Moneda no encontrada"));
+
         Proveedor proveedor = proveedorRepository.findById(request.getIdProveedor())
                 .orElseThrow(() -> new RuntimeException("Proveedor no encontrado"));
 
@@ -87,12 +119,13 @@ public class CompraServiceImpl implements CompraService {
 
         Compra compra = new Compra();
         compra.setPago(pago);
+        compra.setMoneda(moneda);
         compra.setProveedor(proveedor);
         compra.setArticulo(primerArticulo);
         compra.setImpuesto(primerImpuesto);
         compra.setFechaCompras(request.getFechaCompras());
         compra.setZonaProduccion(request.getZonaProduccion());
-        compra.setHectareas(request.getHectareas());
+        compra.setNumeroLote(request.getNumeroLote());
         compra.setEstado("Pendiente");
         compra.setFlgActivo(true);
 
@@ -140,6 +173,9 @@ public class CompraServiceImpl implements CompraService {
         Pago pago = pagoRepository.findById(request.getIdPago())
                 .orElseThrow(() -> new RuntimeException("Condición de pago no encontrada"));
 
+        Moneda moneda = monedaRepository.findById(request.getIdMoneda())
+                .orElseThrow(() -> new RuntimeException("Moneda no encontrada"));
+
         Proveedor proveedor = proveedorRepository.findById(request.getIdProveedor())
                 .orElseThrow(() -> new RuntimeException("Proveedor no encontrado"));
 
@@ -152,12 +188,13 @@ public class CompraServiceImpl implements CompraService {
         inactivarImpuestos(compra.getIdCompras());
 
         compra.setPago(pago);
+        compra.setMoneda(moneda);
         compra.setProveedor(proveedor);
         compra.setArticulo(primerArticulo);
         compra.setImpuesto(primerImpuesto);
         compra.setFechaCompras(request.getFechaCompras());
         compra.setZonaProduccion(request.getZonaProduccion());
-        compra.setHectareas(request.getHectareas());
+        compra.setNumeroLote(request.getNumeroLote());
         compra.setFechaActualizacion(LocalDateTime.now());
         compra.setEstado("Pendiente");
         compra.setAplicaIgv(Boolean.TRUE.equals(request.getAplicaIgv()));
@@ -256,7 +293,7 @@ public class CompraServiceImpl implements CompraService {
                 continue;
             }
 
-            BigDecimal porcentaje = BigDecimal.valueOf(impuesto.getValor()).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal porcentaje = normalizarPorcentajeImpuesto(impuesto.getValor());
             BigDecimal importe = baseImpuestos
                     .multiply(porcentaje)
                     .divide(CIEN, 2, RoundingMode.HALF_UP);
@@ -322,6 +359,10 @@ public class CompraServiceImpl implements CompraService {
         return "IGV".equalsIgnoreCase(tipoNormalizado);
     }
 
+    private BigDecimal normalizarPorcentajeImpuesto(BigDecimal porcentaje) {
+        return porcentaje == null ? ZERO_2 : porcentaje.setScale(2, RoundingMode.HALF_UP);
+    }
+
     private void inactivarDetalles(Integer idCompras) {
         List<CompraDetalle> detalles = compraDetalleRepository
                 .findByCompra_IdComprasAndFlgActivoTrueOrderByIdCompraDetalleAsc(idCompras);
@@ -347,21 +388,44 @@ public class CompraServiceImpl implements CompraService {
     }
 
     private CompraResponse toResponse(Compra compra) {
+        return toResponse(
+                compra,
+                obtenerDetallesActivos(compra.getIdCompras()),
+                obtenerImpuestosActivos(compra.getIdCompras())
+        );
+    }
+
+    private CompraResponse toResponse(
+            Compra compra,
+            List<CompraDetalle> detalles,
+            List<CompraImpuesto> impuestos
+    ) {
         CompraResponse response = new CompraResponse();
 
         response.setIdCompras(compra.getIdCompras());
 
-        response.setIdPago(compra.getPago().getIdPago());
-        response.setPago(compra.getPago().getPago());
+        if (compra.getPago() != null) {
+            response.setIdPago(compra.getPago().getIdPago());
+            response.setPago(compra.getPago().getPago());
+        }
 
-        response.setIdProveedor(compra.getProveedor().getIdProveedor());
-        response.setRuc(compra.getProveedor().getRuc());
-        response.setRazonSocial(compra.getProveedor().getRazonSocial());
-        response.setDireccion(compra.getProveedor().getDireccion());
+        if (compra.getMoneda() != null) {
+            response.setIdMoneda(compra.getMoneda().getIdMoneda());
+            response.setCodigoMoneda(compra.getMoneda().getCodigo());
+            response.setMoneda(compra.getMoneda().getNombre());
+            response.setSimboloMoneda(compra.getMoneda().getSimbolo());
+        }
+
+        if (compra.getProveedor() != null) {
+            response.setIdProveedor(compra.getProveedor().getIdProveedor());
+            response.setRuc(compra.getProveedor().getRuc());
+            response.setRazonSocial(compra.getProveedor().getRazonSocial());
+            response.setDireccion(compra.getProveedor().getDireccion());
+        }
 
         response.setFechaCompras(compra.getFechaCompras());
         response.setZonaProduccion(compra.getZonaProduccion());
-        response.setHectareas(compra.getHectareas());
+        response.setNumeroLote(compra.getNumeroLote());
         response.setPeso(compra.getPeso());
         response.setCostoTotal(compra.getCostoTotal());
         response.setImporteImpuesto(compra.getImporteImpuesto());
@@ -370,16 +434,26 @@ public class CompraServiceImpl implements CompraService {
         response.setImporteIgv(compra.getImporteIgv() == null ? ZERO_2 : compra.getImporteIgv());
         response.setTotalGeneral(compra.getCostoTotal());
         response.setEstado(compra.getEstado());
+        response.setFlgActivo(Boolean.TRUE.equals(compra.getFlgActivo()));
 
-        response.setDetalles(toDetalleResponse(compra.getIdCompras()));
-        response.setImpuestos(toImpuestoResponse(compra.getIdCompras()));
+        response.setDetalles(toDetalleResponse(detalles));
+        response.setImpuestos(toImpuestoResponse(impuestos));
 
         return response;
     }
 
-    private List<CompraDetalleResponse> toDetalleResponse(Integer idCompras) {
+    private List<CompraDetalle> obtenerDetallesActivos(Integer idCompras) {
         return compraDetalleRepository
-                .findByCompra_IdComprasAndFlgActivoTrueOrderByIdCompraDetalleAsc(idCompras)
+                .findByCompra_IdComprasAndFlgActivoTrueOrderByIdCompraDetalleAsc(idCompras);
+    }
+
+    private List<CompraImpuesto> obtenerImpuestosActivos(Integer idCompras) {
+        return compraImpuestoRepository
+                .findByCompra_IdComprasAndFlgActivoTrueOrderByIdCompraImpuestoAsc(idCompras);
+    }
+
+    private List<CompraDetalleResponse> toDetalleResponse(List<CompraDetalle> detalles) {
+        return detalles
                 .stream()
                 .map(detalle -> {
                     CompraDetalleResponse response = new CompraDetalleResponse();
@@ -395,9 +469,8 @@ public class CompraServiceImpl implements CompraService {
                 .toList();
     }
 
-    private List<CompraImpuestoResponse> toImpuestoResponse(Integer idCompras) {
-        return compraImpuestoRepository
-                .findByCompra_IdComprasAndFlgActivoTrueOrderByIdCompraImpuestoAsc(idCompras)
+    private List<CompraImpuestoResponse> toImpuestoResponse(List<CompraImpuesto> impuestos) {
+        return impuestos
                 .stream()
                 .filter(impuesto -> !esIgv(impuesto.getImpuesto()))
                 .map(impuesto -> {

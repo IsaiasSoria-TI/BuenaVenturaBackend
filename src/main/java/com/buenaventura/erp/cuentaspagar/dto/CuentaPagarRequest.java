@@ -20,10 +20,6 @@ public class CuentaPagarRequest {
     private String numeroFactura;
 
     @NotBlank(message = "La moneda es obligatoria")
-    @Pattern(
-            regexp = "^(PEN|USD)$",
-            message = "La moneda debe ser PEN o USD"
-    )
     private String moneda;
 
     @NotBlank(message = "El código de detracción/retención es obligatorio")

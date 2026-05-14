@@ -15,6 +15,9 @@ public class CompraRequest {
     @NotNull(message = "La condición de pago es obligatoria")
     private Integer idPago;
 
+    @NotNull(message = "La moneda es obligatoria")
+    private Integer idMoneda;
+
     @NotNull(message = "El proveedor es obligatorio")
     private Integer idProveedor;
 
@@ -24,9 +27,9 @@ public class CompraRequest {
     @NotBlank(message = "La zona de producción es obligatoria")
     private String zonaProduccion;
 
-    @NotNull(message = "Las hectáreas son obligatorias")
-    @DecimalMin(value = "0.00", inclusive = true, message = "Las hectáreas no pueden ser negativas")
-    private BigDecimal hectareas;
+    @NotNull(message = "El número de lotes es obligatorio")
+    @DecimalMin(value = "0.00", inclusive = true, message = "El número de lotes no puede ser negativo")
+    private BigDecimal numeroLote;
 
     @Valid
     @NotEmpty(message = "Debe agregar al menos un artículo")
@@ -47,6 +50,14 @@ public class CompraRequest {
 
     public void setIdPago(Integer idPago) {
         this.idPago = idPago;
+    }
+
+    public Integer getIdMoneda() {
+        return idMoneda;
+    }
+
+    public void setIdMoneda(Integer idMoneda) {
+        this.idMoneda = idMoneda;
     }
 
     public Integer getIdProveedor() {
@@ -73,12 +84,12 @@ public class CompraRequest {
         this.zonaProduccion = zonaProduccion;
     }
 
-    public BigDecimal getHectareas() {
-        return hectareas;
+    public BigDecimal getNumeroLote() {
+        return numeroLote;
     }
 
-    public void setHectareas(BigDecimal hectareas) {
-        this.hectareas = hectareas;
+    public void setNumeroLote(BigDecimal numeroLote) {
+        this.numeroLote = numeroLote;
     }
 
     public List<CompraDetalleRequest> getDetalles() {

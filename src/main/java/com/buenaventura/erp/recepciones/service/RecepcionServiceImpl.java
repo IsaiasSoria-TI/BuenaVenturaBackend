@@ -173,7 +173,7 @@ public class RecepcionServiceImpl implements RecepcionService {
         response.setRazonSocial(compra.getProveedor().getRazonSocial());
         response.setRuc(compra.getProveedor().getRuc());
         response.setZonaProduccion(compra.getZonaProduccion());
-        response.setHectareas(compra.getHectareas());
+        response.setNumeroLote(compra.getNumeroLote());
         response.setCostoTotal(compra.getCostoTotal());
 
         List<RecepcionDetalleItemResponse> detalles = obtenerDetallesCompra(compra.getIdCompras());

@@ -2,6 +2,7 @@ package com.buenaventura.erp.compras.entity;
 
 import com.buenaventura.erp.articulo.entity.Articulo;
 import com.buenaventura.erp.impuesto.entity.Impuesto;
+import com.buenaventura.erp.moneda.entity.Moneda;
 import com.buenaventura.erp.pago.entity.Pago;
 import com.buenaventura.erp.proveedores.entity.Proveedor;
 import jakarta.persistence.*;
@@ -27,6 +28,10 @@ public class Compra {
     private Pago pago;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_moneda", nullable = false)
+    private Moneda moneda;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "IdProveedor", nullable = false)
     private Proveedor proveedor;
 
@@ -40,8 +45,8 @@ public class Compra {
     @Column(name = "ZonaProduccion", nullable = false, length = 100)
     private String zonaProduccion;
 
-    @Column(name = "Hectareas", nullable = false, precision = 10, scale = 2)
-    private BigDecimal hectareas;
+    @Column(name = "Numero_lote", nullable = false, precision = 10, scale = 2)
+    private BigDecimal numeroLote;
 
     @Column(name = "Peso", nullable = false, precision = 10, scale = 2)
     private BigDecimal peso;
@@ -103,6 +108,14 @@ public class Compra {
         this.pago = pago;
     }
 
+    public Moneda getMoneda() {
+        return moneda;
+    }
+
+    public void setMoneda(Moneda moneda) {
+        this.moneda = moneda;
+    }
+
     public Proveedor getProveedor() {
         return proveedor;
     }
@@ -135,12 +148,12 @@ public class Compra {
         this.zonaProduccion = zonaProduccion;
     }
 
-    public BigDecimal getHectareas() {
-        return hectareas;
+    public BigDecimal getNumeroLote() {
+        return numeroLote;
     }
 
-    public void setHectareas(BigDecimal hectareas) {
-        this.hectareas = hectareas;
+    public void setNumeroLote(BigDecimal numeroLote) {
+        this.numeroLote = numeroLote;
     }
 
     public BigDecimal getPeso() {

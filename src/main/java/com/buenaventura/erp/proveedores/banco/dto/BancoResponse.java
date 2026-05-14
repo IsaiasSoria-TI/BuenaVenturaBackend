@@ -3,13 +3,15 @@ package com.buenaventura.erp.proveedores.banco.dto;
 public class BancoResponse {
     private Integer idBanco;
     private String nombre;
+    private Boolean flgActivo;
 
     public BancoResponse() {
     }
 
-    public BancoResponse(Integer idBanco, String nombre) {
+    public BancoResponse(Integer idBanco, String nombre, Boolean flgActivo) {
         this.idBanco = idBanco;
         this.nombre = nombre;
+        this.flgActivo = flgActivo;
     }
 
     public Integer getIdBanco() {
@@ -26,5 +28,13 @@ public class BancoResponse {
 
     public void setNombre(String nombre) {
         this.nombre = nombre;
+    }
+
+    public Boolean getFlgActivo() {
+        return flgActivo;
+    }
+
+    public void setFlgActivo(Boolean flgActivo) {
+        this.flgActivo = flgActivo;
     }
 }

@@ -14,7 +14,7 @@ public class CompraValidaResponse {
     private String articulo;
     private String medida;
     private String zonaProduccion;
-    private BigDecimal hectareas;
+    private BigDecimal numeroLote;
     private BigDecimal costoKilo;
     private BigDecimal costoTotal;
 
@@ -93,12 +93,12 @@ public class CompraValidaResponse {
         this.zonaProduccion = zonaProduccion;
     }
 
-    public BigDecimal getHectareas() {
-        return hectareas;
+    public BigDecimal getNumeroLote() {
+        return numeroLote;
     }
 
-    public void setHectareas(BigDecimal hectareas) {
-        this.hectareas = hectareas;
+    public void setNumeroLote(BigDecimal numeroLote) {
+        this.numeroLote = numeroLote;
     }
 
     public BigDecimal getCostoKilo() {

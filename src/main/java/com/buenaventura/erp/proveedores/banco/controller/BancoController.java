@@ -1,10 +1,10 @@
 package com.buenaventura.erp.proveedores.banco.controller;
 
+import com.buenaventura.erp.proveedores.banco.dto.BancoRequest;
 import com.buenaventura.erp.proveedores.banco.dto.BancoResponse;
-import com.buenaventura.erp.proveedores.banco.repository.BancoRepository;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.buenaventura.erp.proveedores.banco.service.BancoService;
+import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -12,17 +12,34 @@ import java.util.List;
 @RequestMapping("/api/bancos")
 public class BancoController {
 
-    private final BancoRepository bancoRepository;
+    private final BancoService bancoService;
 
-    public BancoController(BancoRepository bancoRepository) {
-        this.bancoRepository = bancoRepository;
+    public BancoController(BancoService bancoService) {
+        this.bancoService = bancoService;
     }
 
     @GetMapping
     public List<BancoResponse> listar() {
-        return bancoRepository.findAll().stream()
-                .filter(b -> Boolean.TRUE.equals(b.getFlgActivo()))
-                .map(b -> new BancoResponse(b.getIdBanco(), b.getNombre()))
-                .toList();
+        return bancoService.listarActivos();
+    }
+
+    @GetMapping("/todos")
+    public List<BancoResponse> listarTodos() {
+        return bancoService.listarTodos();
+    }
+
+    @PostMapping
+    public BancoResponse crear(@Valid @RequestBody BancoRequest request) {
+        return bancoService.crear(request);
+    }
+
+    @PutMapping("/{id}")
+    public BancoResponse actualizar(@PathVariable Integer id, @Valid @RequestBody BancoRequest request) {
+        return bancoService.actualizar(id, request);
+    }
+
+    @DeleteMapping("/{id}")
+    public void eliminar(@PathVariable Integer id) {
+        bancoService.eliminar(id);
     }
 }
