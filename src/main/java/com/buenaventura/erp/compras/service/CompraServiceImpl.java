@@ -22,6 +22,8 @@ import com.buenaventura.erp.pago.entity.Pago;
 import com.buenaventura.erp.pago.repository.PagoRepository;
 import com.buenaventura.erp.proveedores.entity.Proveedor;
 import com.buenaventura.erp.proveedores.repository.ProveedorRepository;
+import com.buenaventura.erp.tipocambio.entity.TipoCambio;
+import com.buenaventura.erp.tipocambio.repository.TipoCambioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,6 +47,7 @@ public class CompraServiceImpl implements CompraService {
     private final ImpuestoRepository impuestoRepository;
     private final PagoRepository pagoRepository;
     private final MonedaRepository monedaRepository;
+    private final TipoCambioRepository tipoCambioRepository;
     private final ProveedorRepository proveedorRepository;
     private final ArticuloRepository articuloRepository;
 
@@ -55,6 +58,7 @@ public class CompraServiceImpl implements CompraService {
             ImpuestoRepository impuestoRepository,
             PagoRepository pagoRepository,
             MonedaRepository monedaRepository,
+            TipoCambioRepository tipoCambioRepository,
             ProveedorRepository proveedorRepository,
             ArticuloRepository articuloRepository
     ) {
@@ -64,6 +68,7 @@ public class CompraServiceImpl implements CompraService {
         this.impuestoRepository = impuestoRepository;
         this.pagoRepository = pagoRepository;
         this.monedaRepository = monedaRepository;
+        this.tipoCambioRepository = tipoCambioRepository;
         this.proveedorRepository = proveedorRepository;
         this.articuloRepository = articuloRepository;
     }
@@ -109,6 +114,8 @@ public class CompraServiceImpl implements CompraService {
         Moneda moneda = monedaRepository.findById(request.getIdMoneda())
                 .orElseThrow(() -> new RuntimeException("Moneda no encontrada"));
 
+        TipoCambioCompra tipoCambioCompra = resolverTipoCambio(moneda, request);
+
         Proveedor proveedor = proveedorRepository.findById(request.getIdProveedor())
                 .orElseThrow(() -> new RuntimeException("Proveedor no encontrado"));
 
@@ -120,6 +127,8 @@ public class CompraServiceImpl implements CompraService {
         Compra compra = new Compra();
         compra.setPago(pago);
         compra.setMoneda(moneda);
+        compra.setTipoCambio(tipoCambioCompra.tipoCambio());
+        compra.setTipoCambioAplicado(tipoCambioCompra.valor());
         compra.setProveedor(proveedor);
         compra.setArticulo(primerArticulo);
         compra.setImpuesto(primerImpuesto);
@@ -176,6 +185,8 @@ public class CompraServiceImpl implements CompraService {
         Moneda moneda = monedaRepository.findById(request.getIdMoneda())
                 .orElseThrow(() -> new RuntimeException("Moneda no encontrada"));
 
+        TipoCambioCompra tipoCambioCompra = resolverTipoCambio(moneda, request, compra);
+
         Proveedor proveedor = proveedorRepository.findById(request.getIdProveedor())
                 .orElseThrow(() -> new RuntimeException("Proveedor no encontrado"));
 
@@ -189,6 +200,8 @@ public class CompraServiceImpl implements CompraService {
 
         compra.setPago(pago);
         compra.setMoneda(moneda);
+        compra.setTipoCambio(tipoCambioCompra.tipoCambio());
+        compra.setTipoCambioAplicado(tipoCambioCompra.valor());
         compra.setProveedor(proveedor);
         compra.setArticulo(primerArticulo);
         compra.setImpuesto(primerImpuesto);
@@ -272,12 +285,13 @@ public class CompraServiceImpl implements CompraService {
             pesoTotal = pesoTotal.add(detalleRequest.getPeso());
         }
 
+        BigDecimal subtotalTributario = convertirASoles(compra, subtotal);
         boolean aplicaIgv = Boolean.TRUE.equals(request.getAplicaIgv());
         BigDecimal porcentajeIgv = resolverPorcentajeIgv(request);
         BigDecimal importeIgv = aplicaIgv
-                ? subtotal.multiply(porcentajeIgv).divide(CIEN, 2, RoundingMode.HALF_UP)
+                ? subtotalTributario.multiply(porcentajeIgv).divide(CIEN, 2, RoundingMode.HALF_UP)
                 : ZERO_2;
-        BigDecimal baseImpuestos = subtotal.add(importeIgv);
+        BigDecimal baseImpuestos = subtotalTributario.add(importeIgv);
 
         BigDecimal totalImpuestos = BigDecimal.ZERO;
 
@@ -312,7 +326,7 @@ public class CompraServiceImpl implements CompraService {
 
         return new TotalesCompra(
                 pesoTotal.setScale(2, RoundingMode.HALF_UP),
-                subtotal.setScale(2, RoundingMode.HALF_UP),
+                subtotalTributario.setScale(2, RoundingMode.HALF_UP),
                 totalImpuestos.setScale(2, RoundingMode.HALF_UP),
                 aplicaIgv,
                 porcentajeIgv,
@@ -336,6 +350,66 @@ public class CompraServiceImpl implements CompraService {
         }
 
         return null;
+    }
+
+    private TipoCambioCompra resolverTipoCambio(Moneda moneda, CompraRequest request) {
+        if (esMonedaSoles(moneda)) {
+            return new TipoCambioCompra(null, null);
+        }
+
+        if (request.getFechaCompras() == null) {
+            throw new RuntimeException("La fecha de compra es obligatoria para resolver el tipo de cambio");
+        }
+
+        TipoCambio tipoCambio = tipoCambioRepository
+                .findFirstByFechaLessThanEqualAndFlgActivoTrueOrderByFechaDesc(request.getFechaCompras().toLocalDate())
+                .orElseThrow(() -> new RuntimeException("No existe tipo de cambio registrado para la fecha seleccionada."));
+
+        return new TipoCambioCompra(tipoCambio, tipoCambio.getValor().setScale(4, RoundingMode.HALF_UP));
+    }
+
+    private TipoCambioCompra resolverTipoCambio(Moneda moneda, CompraRequest request, Compra compraActual) {
+        if (esMonedaSoles(moneda)) {
+            return new TipoCambioCompra(null, null);
+        }
+
+        boolean mismaMoneda = compraActual.getMoneda() != null
+                && compraActual.getMoneda().getIdMoneda().equals(moneda.getIdMoneda());
+        boolean mismaFecha = compraActual.getFechaCompras() != null
+                && request.getFechaCompras() != null
+                && compraActual.getFechaCompras().toLocalDate().equals(request.getFechaCompras().toLocalDate());
+
+        if (mismaMoneda && mismaFecha && compraActual.getTipoCambioAplicado() != null) {
+            return new TipoCambioCompra(
+                    compraActual.getTipoCambio(),
+                    compraActual.getTipoCambioAplicado().setScale(4, RoundingMode.HALF_UP)
+            );
+        }
+
+        return resolverTipoCambio(moneda, request);
+    }
+
+    private boolean esMonedaSoles(Moneda moneda) {
+        if (moneda == null) {
+            return false;
+        }
+
+        String codigo = moneda.getCodigo() == null ? "" : moneda.getCodigo().trim();
+        String nombre = moneda.getNombre() == null ? "" : moneda.getNombre().trim();
+        return "PEN".equalsIgnoreCase(codigo)
+                || "SOL".equalsIgnoreCase(codigo)
+                || "SOLES".equalsIgnoreCase(nombre)
+                || "SOL".equalsIgnoreCase(nombre);
+    }
+
+    private BigDecimal convertirASoles(Compra compra, BigDecimal importe) {
+        if (compra.getTipoCambioAplicado() == null) {
+            return importe.setScale(2, RoundingMode.HALF_UP);
+        }
+
+        return importe
+                .multiply(compra.getTipoCambioAplicado())
+                .setScale(2, RoundingMode.HALF_UP);
     }
 
     private List<CompraImpuestoRequest> obtenerImpuestosRequest(CompraRequest request) {
@@ -416,6 +490,11 @@ public class CompraServiceImpl implements CompraService {
             response.setSimboloMoneda(compra.getMoneda().getSimbolo());
         }
 
+        if (compra.getTipoCambio() != null) {
+            response.setIdTipoCambio(compra.getTipoCambio().getIdTipoCambio());
+        }
+        response.setTipoCambioAplicado(compra.getTipoCambioAplicado());
+
         if (compra.getProveedor() != null) {
             response.setIdProveedor(compra.getProveedor().getIdProveedor());
             response.setRuc(compra.getProveedor().getRuc());
@@ -493,6 +572,12 @@ public class CompraServiceImpl implements CompraService {
             BigDecimal porcentajeIgv,
             BigDecimal importeIgv,
             BigDecimal totalGeneral
+    ) {
+    }
+
+    private record TipoCambioCompra(
+            TipoCambio tipoCambio,
+            BigDecimal valor
     ) {
     }
 }

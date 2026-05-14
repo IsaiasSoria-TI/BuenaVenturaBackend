@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface CompraRepository extends JpaRepository<Compra, Integer> {
 
-    @EntityGraph(attributePaths = {"impuesto", "pago", "proveedor", "articulo", "moneda"})
+    @EntityGraph(attributePaths = {"impuesto", "pago", "proveedor", "articulo", "moneda", "tipoCambio"})
     List<Compra> findByFlgActivoTrueOrderByFechaComprasDesc();
 
     @Query("""
@@ -20,6 +20,7 @@ public interface CompraRepository extends JpaRepository<Compra, Integer> {
             left join fetch compra.proveedor
             left join fetch compra.articulo
             left join fetch compra.moneda
+            left join fetch compra.tipoCambio
             order by compra.fechaCompras desc
             """)
     List<Compra> findTodasParaListado();

@@ -15,6 +15,8 @@ public class CompraResponse {
     private String codigoMoneda;
     private String moneda;
     private String simboloMoneda;
+    private Integer idTipoCambio;
+    private BigDecimal tipoCambioAplicado;
 
     private Integer idProveedor;
     private String ruc;
@@ -96,6 +98,22 @@ public class CompraResponse {
 
     public void setSimboloMoneda(String simboloMoneda) {
         this.simboloMoneda = simboloMoneda;
+    }
+
+    public Integer getIdTipoCambio() {
+        return idTipoCambio;
+    }
+
+    public void setIdTipoCambio(Integer idTipoCambio) {
+        this.idTipoCambio = idTipoCambio;
+    }
+
+    public BigDecimal getTipoCambioAplicado() {
+        return tipoCambioAplicado;
+    }
+
+    public void setTipoCambioAplicado(BigDecimal tipoCambioAplicado) {
+        this.tipoCambioAplicado = tipoCambioAplicado;
     }
 
     public Integer getIdProveedor() {

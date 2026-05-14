@@ -18,6 +18,9 @@ public class CompraRequest {
     @NotNull(message = "La moneda es obligatoria")
     private Integer idMoneda;
 
+    private Integer idTipoCambio;
+    private BigDecimal tipoCambioAplicado;
+
     @NotNull(message = "El proveedor es obligatorio")
     private Integer idProveedor;
 
@@ -58,6 +61,22 @@ public class CompraRequest {
 
     public void setIdMoneda(Integer idMoneda) {
         this.idMoneda = idMoneda;
+    }
+
+    public Integer getIdTipoCambio() {
+        return idTipoCambio;
+    }
+
+    public void setIdTipoCambio(Integer idTipoCambio) {
+        this.idTipoCambio = idTipoCambio;
+    }
+
+    public BigDecimal getTipoCambioAplicado() {
+        return tipoCambioAplicado;
+    }
+
+    public void setTipoCambioAplicado(BigDecimal tipoCambioAplicado) {
+        this.tipoCambioAplicado = tipoCambioAplicado;
     }
 
     public Integer getIdProveedor() {

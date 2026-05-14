@@ -25,6 +25,12 @@ public class Recepcion {
     @Column(name = "FechaRecepcion", nullable = false)
     private LocalDateTime fechaRecepcion;
 
+    @Column(name = "GuiaRemision", length = 100)
+    private String guiaRemision;
+
+    @Column(name = "CantidadJabas", nullable = false, precision = 10, scale = 2)
+    private BigDecimal cantidadJabas;
+
     @Column(name = "Estado", nullable = false, length = 20)
     private String estado;
 
@@ -61,6 +67,22 @@ public class Recepcion {
 
     public void setFechaRecepcion(LocalDateTime fechaRecepcion) {
         this.fechaRecepcion = fechaRecepcion;
+    }
+
+    public String getGuiaRemision() {
+        return guiaRemision;
+    }
+
+    public void setGuiaRemision(String guiaRemision) {
+        this.guiaRemision = guiaRemision;
+    }
+
+    public BigDecimal getCantidadJabas() {
+        return cantidadJabas;
+    }
+
+    public void setCantidadJabas(BigDecimal cantidadJabas) {
+        this.cantidadJabas = cantidadJabas;
     }
 
     public String getEstado() {

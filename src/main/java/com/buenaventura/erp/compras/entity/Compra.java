@@ -5,6 +5,7 @@ import com.buenaventura.erp.impuesto.entity.Impuesto;
 import com.buenaventura.erp.moneda.entity.Moneda;
 import com.buenaventura.erp.pago.entity.Pago;
 import com.buenaventura.erp.proveedores.entity.Proveedor;
+import com.buenaventura.erp.tipocambio.entity.TipoCambio;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -30,6 +31,13 @@ public class Compra {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_moneda", nullable = false)
     private Moneda moneda;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "IdTipoCambio")
+    private TipoCambio tipoCambio;
+
+    @Column(name = "TipoCambioAplicado", precision = 10, scale = 4)
+    private BigDecimal tipoCambioAplicado;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "IdProveedor", nullable = false)
@@ -114,6 +122,22 @@ public class Compra {
 
     public void setMoneda(Moneda moneda) {
         this.moneda = moneda;
+    }
+
+    public TipoCambio getTipoCambio() {
+        return tipoCambio;
+    }
+
+    public void setTipoCambio(TipoCambio tipoCambio) {
+        this.tipoCambio = tipoCambio;
+    }
+
+    public BigDecimal getTipoCambioAplicado() {
+        return tipoCambioAplicado;
+    }
+
+    public void setTipoCambioAplicado(BigDecimal tipoCambioAplicado) {
+        this.tipoCambioAplicado = tipoCambioAplicado;
     }
 
     public Proveedor getProveedor() {

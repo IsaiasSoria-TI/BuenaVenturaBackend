@@ -1,15 +1,22 @@
 package com.buenaventura.erp.recepciones.dto;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public class RecepcionRequest {
 
     @NotNull(message = "La compra es obligatoria")
     private Integer idCompras;
+
+    private String guiaRemision;
+
+    @DecimalMin(value = "0.00", inclusive = true, message = "La cantidad de jabas no puede ser negativa")
+    private BigDecimal cantidadJabas;
 
     @Valid
     @NotEmpty(message = "Debe agregar al menos un detalle de recepción")
@@ -24,6 +31,22 @@ public class RecepcionRequest {
 
     public void setIdCompras(Integer idCompras) {
         this.idCompras = idCompras;
+    }
+
+    public String getGuiaRemision() {
+        return guiaRemision;
+    }
+
+    public void setGuiaRemision(String guiaRemision) {
+        this.guiaRemision = guiaRemision;
+    }
+
+    public BigDecimal getCantidadJabas() {
+        return cantidadJabas;
+    }
+
+    public void setCantidadJabas(BigDecimal cantidadJabas) {
+        this.cantidadJabas = cantidadJabas;
     }
 
     public List<RecepcionDetalleRequest> getDetalles() {

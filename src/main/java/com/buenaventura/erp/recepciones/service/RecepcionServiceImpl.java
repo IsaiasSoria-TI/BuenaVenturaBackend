@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -26,6 +27,7 @@ public class RecepcionServiceImpl implements RecepcionService {
     private static final String ESTADO_PENDIENTE = "Pendiente";
     private static final String ESTADO_COMPLETA_PARCIAL = "Completa parcial";
     private static final String ESTADO_COMPLETA = "Completa";
+    private static final BigDecimal ZERO_2 = BigDecimal.ZERO.setScale(2);
 
     private final RecepcionRepository recepcionRepository;
     private final RecepcionDetalleRepository recepcionDetalleRepository;
@@ -68,6 +70,10 @@ public class RecepcionServiceImpl implements RecepcionService {
             throw new RuntimeException("Debe agregar al menos un detalle de recepción");
         }
 
+        if (request.getCantidadJabas() != null && request.getCantidadJabas().compareTo(BigDecimal.ZERO) < 0) {
+            throw new RuntimeException("La cantidad de jabas no puede ser negativa");
+        }
+
         BigDecimal totalRecibidoRecepcion = BigDecimal.ZERO;
 
         for (RecepcionDetalleRequest detalleRequest : request.getDetalles()) {
@@ -102,6 +108,8 @@ public class RecepcionServiceImpl implements RecepcionService {
         recepcion.setCompra(compra);
         recepcion.setRecibido(totalRecibidoRecepcion);
         recepcion.setFechaRecepcion(LocalDateTime.now());
+        recepcion.setGuiaRemision(normalizarGuiaRemision(request.getGuiaRemision()));
+        recepcion.setCantidadJabas(normalizarCantidadJabas(request.getCantidadJabas()));
         recepcion.setEstado(ESTADO_COMPLETA_PARCIAL);
 
         Recepcion guardada = recepcionRepository.save(recepcion);
@@ -282,6 +290,8 @@ public class RecepcionServiceImpl implements RecepcionService {
         RecepcionResponse response = new RecepcionResponse();
         response.setIdRecepciones(recepcion.getIdRecepciones());
         response.setFechaRecepcion(recepcion.getFechaRecepcion());
+        response.setGuiaRemision(recepcion.getGuiaRemision());
+        response.setCantidadJabas(recepcion.getCantidadJabas());
         response.setEstado(recepcion.getEstado());
         response.setIdCompras(recepcion.getCompra().getIdCompras());
         response.setPesoComprado(recepcion.getCompra().getPeso());
@@ -303,6 +313,19 @@ public class RecepcionServiceImpl implements RecepcionService {
         }
 
         return response;
+    }
+
+    private String normalizarGuiaRemision(String guiaRemision) {
+        if (guiaRemision == null) {
+            return null;
+        }
+
+        String normalizado = guiaRemision.trim();
+        return normalizado.isBlank() ? null : normalizado;
+    }
+
+    private BigDecimal normalizarCantidadJabas(BigDecimal cantidadJabas) {
+        return cantidadJabas == null ? ZERO_2 : cantidadJabas.setScale(2, RoundingMode.HALF_UP);
     }
 
     private RecepcionResponse toCompraPendienteResponse(Compra compra) {
