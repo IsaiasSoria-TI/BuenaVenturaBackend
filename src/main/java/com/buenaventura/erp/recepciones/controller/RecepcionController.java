@@ -1,6 +1,7 @@
 package com.buenaventura.erp.recepciones.controller;
 
 import com.buenaventura.erp.recepciones.dto.RecepcionDetalleResponse;
+import com.buenaventura.erp.recepciones.dto.RecepcionDatosRequest;
 import com.buenaventura.erp.recepciones.dto.RecepcionRequest;
 import com.buenaventura.erp.recepciones.dto.RecepcionResponse;
 import com.buenaventura.erp.recepciones.service.RecepcionService;
@@ -27,6 +28,14 @@ public class RecepcionController {
     @PostMapping
     public RecepcionResponse registrar(@Valid @RequestBody RecepcionRequest request) {
         return recepcionService.registrar(request);
+    }
+
+    @PutMapping("/{id}/datos")
+    public RecepcionResponse actualizarDatos(
+            @PathVariable Integer id,
+            @RequestBody RecepcionDatosRequest request
+    ) {
+        return recepcionService.actualizarDatos(id, request);
     }
 
     @GetMapping("/compras-pendientes")

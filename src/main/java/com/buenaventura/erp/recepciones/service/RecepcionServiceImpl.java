@@ -4,6 +4,8 @@ import com.buenaventura.erp.compras.entity.Compra;
 import com.buenaventura.erp.compras.entity.CompraDetalle;
 import com.buenaventura.erp.compras.repository.CompraDetalleRepository;
 import com.buenaventura.erp.compras.repository.CompraRepository;
+import com.buenaventura.erp.moneda.entity.Moneda;
+import com.buenaventura.erp.recepciones.dto.RecepcionDatosRequest;
 import com.buenaventura.erp.recepciones.dto.RecepcionDetalleItemResponse;
 import com.buenaventura.erp.recepciones.dto.RecepcionDetalleRequest;
 import com.buenaventura.erp.recepciones.dto.RecepcionDetalleResponse;
@@ -161,6 +163,22 @@ public class RecepcionServiceImpl implements RecepcionService {
     }
 
     @Override
+    @Transactional
+    public RecepcionResponse actualizarDatos(Integer id, RecepcionDatosRequest request) {
+        Recepcion recepcion = recepcionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("La recepciÃ³n no existe"));
+
+        if (request.getCantidadJabas() != null && request.getCantidadJabas().compareTo(BigDecimal.ZERO) < 0) {
+            throw new RuntimeException("La cantidad de jabas no puede ser negativa");
+        }
+
+        recepcion.setGuiaRemision(normalizarGuiaRemision(request.getGuiaRemision()));
+        recepcion.setCantidadJabas(normalizarCantidadJabas(request.getCantidadJabas()));
+
+        return toResponse(recepcionRepository.save(recepcion));
+    }
+
+    @Override
     public List<RecepcionResponse> listarComprasPendientes() {
         return compraRepository.findByFlgActivoTrueOrderByFechaComprasDesc()
                 .stream()
@@ -182,7 +200,8 @@ public class RecepcionServiceImpl implements RecepcionService {
         response.setRuc(compra.getProveedor().getRuc());
         response.setZonaProduccion(compra.getZonaProduccion());
         response.setNumeroLote(compra.getNumeroLote());
-        response.setCostoTotal(compra.getCostoTotal());
+        response.setCostoTotal(calcularCostoTotalCompra(compra.getIdCompras()));
+        completarMoneda(response, compra);
 
         List<RecepcionDetalleItemResponse> detalles = obtenerDetallesCompra(compra.getIdCompras());
 
@@ -300,6 +319,8 @@ public class RecepcionServiceImpl implements RecepcionService {
         response.setRazonSocial(recepcion.getCompra().getProveedor().getRazonSocial());
         response.setRuc(recepcion.getCompra().getProveedor().getRuc());
         response.setDetalles(detalles);
+        response.setCostoTotal(calcularCostoTotalCompra(recepcion.getCompra().getIdCompras()));
+        completarMoneda(response, recepcion.getCompra());
 
         if (!detalles.isEmpty()) {
             response.setArticulo(
@@ -347,6 +368,8 @@ public class RecepcionServiceImpl implements RecepcionService {
         response.setRazonSocial(compra.getProveedor().getRazonSocial());
         response.setRuc(compra.getProveedor().getRuc());
         response.setDetalles(detalles);
+        response.setCostoTotal(calcularCostoTotalCompra(compra.getIdCompras()));
+        completarMoneda(response, compra);
 
         if (!detalles.isEmpty()) {
             response.setArticulo(
@@ -360,5 +383,46 @@ public class RecepcionServiceImpl implements RecepcionService {
         }
 
         return response;
+    }
+
+    private BigDecimal calcularCostoTotalCompra(Integer idCompras) {
+        return compraDetalleRepository
+                .findByCompra_IdComprasAndFlgActivoTrueOrderByIdCompraDetalleAsc(idCompras)
+                .stream()
+                .map(CompraDetalle::getCostoTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private void completarMoneda(RecepcionResponse response, Compra compra) {
+        if (compra == null) {
+            return;
+        }
+
+        Moneda moneda = compra.getMoneda();
+        if (moneda != null) {
+            response.setIdMoneda(moneda.getIdMoneda());
+            response.setCodigoMoneda(moneda.getCodigo());
+            response.setMoneda(moneda.getNombre());
+            response.setSimboloMoneda(moneda.getSimbolo());
+        }
+
+        response.setTipoCambioAplicado(compra.getTipoCambioAplicado());
+    }
+
+    private void completarMoneda(RecepcionDetalleResponse response, Compra compra) {
+        if (compra == null) {
+            return;
+        }
+
+        Moneda moneda = compra.getMoneda();
+        if (moneda != null) {
+            response.setIdMoneda(moneda.getIdMoneda());
+            response.setCodigoMoneda(moneda.getCodigo());
+            response.setMoneda(moneda.getNombre());
+            response.setSimboloMoneda(moneda.getSimbolo());
+        }
+
+        response.setTipoCambioAplicado(compra.getTipoCambioAplicado());
     }
 }

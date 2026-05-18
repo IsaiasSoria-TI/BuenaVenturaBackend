@@ -1,6 +1,8 @@
 package com.buenaventura.erp.cuentaspagar.service;
 
 import com.buenaventura.erp.compras.entity.Compra;
+import com.buenaventura.erp.compras.entity.CompraDetalle;
+import com.buenaventura.erp.compras.repository.CompraDetalleRepository;
 import com.buenaventura.erp.compras.repository.CompraRepository;
 import com.buenaventura.erp.cuentaspagar.dto.CompraValidaResponse;
 import com.buenaventura.erp.cuentaspagar.dto.CuentaPagarDetalleCompraResponse;
@@ -36,6 +38,7 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
     private final CuentaPagarRepository cuentaPagarRepository;
     private final CuentaPagarDetalleRepository cuentaPagarDetalleRepository;
     private final CompraRepository compraRepository;
+    private final CompraDetalleRepository compraDetalleRepository;
     private final RecepcionRepository recepcionRepository;
     private final RecepcionDetalleRepository recepcionDetalleRepository;
     private final MonedaRepository monedaRepository;
@@ -43,12 +46,14 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
     public CuentaPagarServiceImpl(CuentaPagarRepository cuentaPagarRepository,
                                   CuentaPagarDetalleRepository cuentaPagarDetalleRepository,
                                   CompraRepository compraRepository,
+                                  CompraDetalleRepository compraDetalleRepository,
                                   RecepcionRepository recepcionRepository,
                                   RecepcionDetalleRepository recepcionDetalleRepository,
                                   MonedaRepository monedaRepository) {
         this.cuentaPagarRepository = cuentaPagarRepository;
         this.cuentaPagarDetalleRepository = cuentaPagarDetalleRepository;
         this.compraRepository = compraRepository;
+        this.compraDetalleRepository = compraDetalleRepository;
         this.recepcionRepository = recepcionRepository;
         this.recepcionDetalleRepository = recepcionDetalleRepository;
         this.monedaRepository = monedaRepository;
@@ -102,8 +107,9 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
             response.setDescripcionArticulo(compra.getArticulo().getDescripcion());
         }
 
-        response.setImporte(compra.getCostoTotal());
+        response.setImporte(calcularCostoTotalCompra(compra.getIdCompras()));
         response.setDeduccionRetencion(compra.getImporteImpuesto());
+        completarMoneda(response, compra);
 
         if (compra.getImpuesto() != null) {
             response.setTipoDetRet(compra.getImpuesto().getTipoImpuesto());
@@ -162,7 +168,7 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
         cuentaPagar.setIdCompras(detalle.getIdCompras());
         cuentaPagar.setIdRecepciones(detalle.getIdRecepciones());
         cuentaPagar.setNumeroFactura(obtenerNumeroFactura(request, detalle));
-        cuentaPagar.setMoneda(codigoMoneda);
+        cuentaPagar.setMoneda(obtenerCodigoMonedaCompra(compra, codigoMoneda));
         cuentaPagar.setCodigoDetRet(request.getCodigoDetRet().trim());
 
         if (cuentaPagar.getEstado() == null || cuentaPagar.getEstado().isBlank()) {
@@ -216,7 +222,7 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
         cuentaPagar.setIdCompras(compra.getIdCompras());
         cuentaPagar.setIdRecepciones(recepcion.getIdRecepciones());
         cuentaPagar.setNumeroFactura(obtenerNumeroFactura(request, detalle));
-        cuentaPagar.setMoneda(request.getMoneda().trim());
+        cuentaPagar.setMoneda(obtenerCodigoMonedaCompra(compra, request.getMoneda()));
         cuentaPagar.setCodigoDetRet(request.getCodigoDetRet().trim());
         cuentaPagar.setEstado(ESTADO_PENDIENTE);
         cuentaPagar.setFlgActivo(true);
@@ -349,7 +355,8 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
         response.setZonaProduccion(compra.getZonaProduccion());
         response.setNumeroLote(compra.getNumeroLote());
         response.setCostoKilo(compra.getCostoKilo());
-        response.setCostoTotal(compra.getCostoTotal());
+        response.setCostoTotal(calcularCostoTotalCompra(compra.getIdCompras()));
+        completarMoneda(response, compra);
 
         return response;
     }
@@ -386,6 +393,8 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
         if (compra != null) {
             response.setProveedor(compra.getProveedor().getRazonSocial());
             response.setRuc(compra.getProveedor().getRuc());
+            response.setImporteCompra(calcularCostoTotalCompra(compra.getIdCompras()));
+            completarMoneda(response, compra);
 
             if (compra.getArticulo() != null) {
                 response.setArticulo(compra.getArticulo().getDescripcion());
@@ -418,6 +427,58 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
         }
 
         return response;
+    }
+
+    private BigDecimal calcularCostoTotalCompra(Integer idCompras) {
+        return compraDetalleRepository
+                .findByCompra_IdComprasAndFlgActivoTrueOrderByIdCompraDetalleAsc(idCompras)
+                .stream()
+                .map(CompraDetalle::getCostoTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private String obtenerCodigoMonedaCompra(Compra compra, String fallback) {
+        if (compra != null && compra.getMoneda() != null && compra.getMoneda().getCodigo() != null) {
+            return compra.getMoneda().getCodigo().trim();
+        }
+
+        return fallback == null ? null : fallback.trim();
+    }
+
+    private void completarMoneda(CompraValidaResponse response, Compra compra) {
+        if (compra == null || compra.getMoneda() == null) {
+            return;
+        }
+
+        Moneda moneda = compra.getMoneda();
+        response.setIdMoneda(moneda.getIdMoneda());
+        response.setCodigoMoneda(moneda.getCodigo());
+        response.setMoneda(moneda.getNombre());
+        response.setSimboloMoneda(moneda.getSimbolo());
+    }
+
+    private void completarMoneda(CuentaPagarDetalleCompraResponse response, Compra compra) {
+        if (compra == null || compra.getMoneda() == null) {
+            return;
+        }
+
+        Moneda moneda = compra.getMoneda();
+        response.setIdMoneda(moneda.getIdMoneda());
+        response.setCodigoMoneda(moneda.getCodigo());
+        response.setMoneda(moneda.getNombre());
+        response.setSimboloMoneda(moneda.getSimbolo());
+    }
+
+    private void completarMoneda(CuentaPagarResponse response, Compra compra) {
+        if (compra == null || compra.getMoneda() == null) {
+            return;
+        }
+
+        Moneda moneda = compra.getMoneda();
+        response.setIdMoneda(moneda.getIdMoneda());
+        response.setCodigoMoneda(moneda.getCodigo());
+        response.setMoneda(moneda.getCodigo());
+        response.setSimboloMoneda(moneda.getSimbolo());
     }
 
     private CuentaPagarDetalleResponse toDetalleResponse(CuentaPagarDetalle detalle) {

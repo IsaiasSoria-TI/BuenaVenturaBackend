@@ -13,6 +13,11 @@ public class RecepcionDetalleResponse {
     private String ruc;
     private String zonaProduccion;
     private BigDecimal numeroLote;
+    private Integer idMoneda;
+    private String codigoMoneda;
+    private String moneda;
+    private String simboloMoneda;
+    private BigDecimal tipoCambioAplicado;
 
     private BigDecimal pesoComprado;
     private BigDecimal totalRecibido;
@@ -76,6 +81,46 @@ public class RecepcionDetalleResponse {
 
     public void setNumeroLote(BigDecimal numeroLote) {
         this.numeroLote = numeroLote;
+    }
+
+    public Integer getIdMoneda() {
+        return idMoneda;
+    }
+
+    public void setIdMoneda(Integer idMoneda) {
+        this.idMoneda = idMoneda;
+    }
+
+    public String getCodigoMoneda() {
+        return codigoMoneda;
+    }
+
+    public void setCodigoMoneda(String codigoMoneda) {
+        this.codigoMoneda = codigoMoneda;
+    }
+
+    public String getMoneda() {
+        return moneda;
+    }
+
+    public void setMoneda(String moneda) {
+        this.moneda = moneda;
+    }
+
+    public String getSimboloMoneda() {
+        return simboloMoneda;
+    }
+
+    public void setSimboloMoneda(String simboloMoneda) {
+        this.simboloMoneda = simboloMoneda;
+    }
+
+    public BigDecimal getTipoCambioAplicado() {
+        return tipoCambioAplicado;
+    }
+
+    public void setTipoCambioAplicado(BigDecimal tipoCambioAplicado) {
+        this.tipoCambioAplicado = tipoCambioAplicado;
     }
 
     public BigDecimal getPesoComprado() {

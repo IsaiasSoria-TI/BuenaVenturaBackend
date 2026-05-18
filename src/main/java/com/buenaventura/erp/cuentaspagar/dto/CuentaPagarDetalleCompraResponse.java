@@ -17,6 +17,10 @@ public class CuentaPagarDetalleCompraResponse {
     private BigDecimal porcentajeImpuesto;
     private String condicionPago;
     private String estadoCompra;
+    private Integer idMoneda;
+    private String codigoMoneda;
+    private String moneda;
+    private String simboloMoneda;
     private List<CuentaPagarRecepcionDisponibleResponse> recepcionesDisponibles;
 
     public CuentaPagarDetalleCompraResponse() {
@@ -116,6 +120,38 @@ public class CuentaPagarDetalleCompraResponse {
 
     public void setEstadoCompra(String estadoCompra) {
         this.estadoCompra = estadoCompra;
+    }
+
+    public Integer getIdMoneda() {
+        return idMoneda;
+    }
+
+    public void setIdMoneda(Integer idMoneda) {
+        this.idMoneda = idMoneda;
+    }
+
+    public String getCodigoMoneda() {
+        return codigoMoneda;
+    }
+
+    public void setCodigoMoneda(String codigoMoneda) {
+        this.codigoMoneda = codigoMoneda;
+    }
+
+    public String getMoneda() {
+        return moneda;
+    }
+
+    public void setMoneda(String moneda) {
+        this.moneda = moneda;
+    }
+
+    public String getSimboloMoneda() {
+        return simboloMoneda;
+    }
+
+    public void setSimboloMoneda(String simboloMoneda) {
+        this.simboloMoneda = simboloMoneda;
     }
 
     public List<CuentaPagarRecepcionDisponibleResponse> getRecepcionesDisponibles() {

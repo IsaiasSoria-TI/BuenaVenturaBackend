@@ -1,6 +1,7 @@
 package com.buenaventura.erp.recepciones.service;
 
 import com.buenaventura.erp.recepciones.dto.RecepcionDetalleResponse;
+import com.buenaventura.erp.recepciones.dto.RecepcionDatosRequest;
 import com.buenaventura.erp.recepciones.dto.RecepcionRequest;
 import com.buenaventura.erp.recepciones.dto.RecepcionResponse;
 
@@ -11,6 +12,8 @@ public interface RecepcionService {
     List<RecepcionResponse> listar();
 
     RecepcionResponse registrar(RecepcionRequest request);
+
+    RecepcionResponse actualizarDatos(Integer id, RecepcionDatosRequest request);
 
     List<RecepcionResponse> listarComprasPendientes();
 

@@ -1,5 +1,6 @@
 package com.buenaventura.erp.cuentaspagar.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -10,6 +11,10 @@ public class CuentaPagarResponse {
     private Integer idRecepciones;
     private String numeroFactura;
     private String moneda;
+    private Integer idMoneda;
+    private String codigoMoneda;
+    private String simboloMoneda;
+    private BigDecimal importeCompra;
     private String codigoDetRet;
     private String estado;
     private Boolean flgActivo;
@@ -62,6 +67,38 @@ public class CuentaPagarResponse {
 
     public void setMoneda(String moneda) {
         this.moneda = moneda;
+    }
+
+    public Integer getIdMoneda() {
+        return idMoneda;
+    }
+
+    public void setIdMoneda(Integer idMoneda) {
+        this.idMoneda = idMoneda;
+    }
+
+    public String getCodigoMoneda() {
+        return codigoMoneda;
+    }
+
+    public void setCodigoMoneda(String codigoMoneda) {
+        this.codigoMoneda = codigoMoneda;
+    }
+
+    public String getSimboloMoneda() {
+        return simboloMoneda;
+    }
+
+    public void setSimboloMoneda(String simboloMoneda) {
+        this.simboloMoneda = simboloMoneda;
+    }
+
+    public BigDecimal getImporteCompra() {
+        return importeCompra;
+    }
+
+    public void setImporteCompra(BigDecimal importeCompra) {
+        this.importeCompra = importeCompra;
     }
 
     public String getCodigoDetRet() {

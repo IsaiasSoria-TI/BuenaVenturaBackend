@@ -30,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -295,7 +296,7 @@ public class CompraServiceImpl implements CompraService {
 
         BigDecimal totalImpuestos = BigDecimal.ZERO;
 
-        for (CompraImpuestoRequest impuestoRequest : obtenerImpuestosRequest(request)) {
+        for (CompraImpuestoRequest impuestoRequest : obtenerImpuestosReferencialesRequest(request)) {
             if (impuestoRequest == null || impuestoRequest.getIdImpuesto() == null) {
                 continue;
             }
@@ -336,7 +337,7 @@ public class CompraServiceImpl implements CompraService {
     }
 
     private Impuesto resolverImpuestoCabecera(CompraRequest request) {
-        for (CompraImpuestoRequest impuestoRequest : obtenerImpuestosRequest(request)) {
+        for (CompraImpuestoRequest impuestoRequest : obtenerImpuestosReferencialesRequest(request)) {
             if (impuestoRequest == null || impuestoRequest.getIdImpuesto() == null) {
                 continue;
             }
@@ -412,8 +413,23 @@ public class CompraServiceImpl implements CompraService {
                 .setScale(2, RoundingMode.HALF_UP);
     }
 
-    private List<CompraImpuestoRequest> obtenerImpuestosRequest(CompraRequest request) {
-        return request.getImpuestos() == null ? List.of() : request.getImpuestos();
+    private List<CompraImpuestoRequest> obtenerImpuestosReferencialesRequest(CompraRequest request) {
+        if (request.getImpuestos() == null) {
+            return List.of();
+        }
+
+        return request.getImpuestos()
+                .stream()
+                .filter(impuestoRequest -> impuestoRequest != null && impuestoRequest.getIdImpuesto() != null)
+                .collect(Collectors.toMap(
+                        CompraImpuestoRequest::getIdImpuesto,
+                        impuestoRequest -> impuestoRequest,
+                        (primero, repetido) -> primero,
+                        LinkedHashMap::new
+                ))
+                .values()
+                .stream()
+                .toList();
     }
 
     private BigDecimal resolverPorcentajeIgv(CompraRequest request) {
@@ -552,6 +568,14 @@ public class CompraServiceImpl implements CompraService {
         return impuestos
                 .stream()
                 .filter(impuesto -> !esIgv(impuesto.getImpuesto()))
+                .collect(Collectors.toMap(
+                        impuesto -> impuesto.getImpuesto().getIdImpuesto(),
+                        impuesto -> impuesto,
+                        (primero, repetido) -> primero,
+                        LinkedHashMap::new
+                ))
+                .values()
+                .stream()
                 .map(impuesto -> {
                     CompraImpuestoResponse response = new CompraImpuestoResponse();
                     response.setIdCompraImpuesto(impuesto.getIdCompraImpuesto());

@@ -14,6 +14,10 @@ public class CompraValidaResponse {
     private String articulo;
     private String medida;
     private String zonaProduccion;
+    private Integer idMoneda;
+    private String codigoMoneda;
+    private String moneda;
+    private String simboloMoneda;
     private BigDecimal numeroLote;
     private BigDecimal costoKilo;
     private BigDecimal costoTotal;
@@ -91,6 +95,38 @@ public class CompraValidaResponse {
 
     public void setZonaProduccion(String zonaProduccion) {
         this.zonaProduccion = zonaProduccion;
+    }
+
+    public Integer getIdMoneda() {
+        return idMoneda;
+    }
+
+    public void setIdMoneda(Integer idMoneda) {
+        this.idMoneda = idMoneda;
+    }
+
+    public String getCodigoMoneda() {
+        return codigoMoneda;
+    }
+
+    public void setCodigoMoneda(String codigoMoneda) {
+        this.codigoMoneda = codigoMoneda;
+    }
+
+    public String getMoneda() {
+        return moneda;
+    }
+
+    public void setMoneda(String moneda) {
+        this.moneda = moneda;
+    }
+
+    public String getSimboloMoneda() {
+        return simboloMoneda;
+    }
+
+    public void setSimboloMoneda(String simboloMoneda) {
+        this.simboloMoneda = simboloMoneda;
     }
 
     public BigDecimal getNumeroLote() {

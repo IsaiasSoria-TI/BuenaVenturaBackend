@@ -16,9 +16,15 @@ public class RecepcionResponse {
     private String estadoCompra;
     private String razonSocial;
     private String ruc;
+    private Integer idMoneda;
+    private String codigoMoneda;
+    private String moneda;
+    private String simboloMoneda;
+    private BigDecimal tipoCambioAplicado;
 
     private BigDecimal pesoComprado;
     private BigDecimal recibido;
+    private BigDecimal costoTotal;
 
     private String articulo;
     private String medida;
@@ -97,6 +103,46 @@ public class RecepcionResponse {
         this.ruc = ruc;
     }
 
+    public Integer getIdMoneda() {
+        return idMoneda;
+    }
+
+    public void setIdMoneda(Integer idMoneda) {
+        this.idMoneda = idMoneda;
+    }
+
+    public String getCodigoMoneda() {
+        return codigoMoneda;
+    }
+
+    public void setCodigoMoneda(String codigoMoneda) {
+        this.codigoMoneda = codigoMoneda;
+    }
+
+    public String getMoneda() {
+        return moneda;
+    }
+
+    public void setMoneda(String moneda) {
+        this.moneda = moneda;
+    }
+
+    public String getSimboloMoneda() {
+        return simboloMoneda;
+    }
+
+    public void setSimboloMoneda(String simboloMoneda) {
+        this.simboloMoneda = simboloMoneda;
+    }
+
+    public BigDecimal getTipoCambioAplicado() {
+        return tipoCambioAplicado;
+    }
+
+    public void setTipoCambioAplicado(BigDecimal tipoCambioAplicado) {
+        this.tipoCambioAplicado = tipoCambioAplicado;
+    }
+
     public BigDecimal getPesoComprado() {
         return pesoComprado;
     }
@@ -111,6 +157,14 @@ public class RecepcionResponse {
 
     public void setRecibido(BigDecimal recibido) {
         this.recibido = recibido;
+    }
+
+    public BigDecimal getCostoTotal() {
+        return costoTotal;
+    }
+
+    public void setCostoTotal(BigDecimal costoTotal) {
+        this.costoTotal = costoTotal;
     }
 
     public String getArticulo() {
