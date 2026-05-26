@@ -290,9 +290,11 @@ public class CompraServiceImpl implements CompraService {
         boolean aplicaIgv = Boolean.TRUE.equals(request.getAplicaIgv());
         BigDecimal porcentajeIgv = resolverPorcentajeIgv(request);
         BigDecimal importeIgv = aplicaIgv
-                ? subtotalTributario.multiply(porcentajeIgv).divide(CIEN, 2, RoundingMode.HALF_UP)
+                ? subtotal.multiply(porcentajeIgv).divide(CIEN, 2, RoundingMode.HALF_UP)
                 : ZERO_2;
-        BigDecimal baseImpuestos = subtotalTributario.add(importeIgv);
+        BigDecimal importeIgvTributario = convertirASoles(compra, importeIgv);
+        BigDecimal baseImpuestos = subtotalTributario.add(importeIgvTributario);
+        BigDecimal totalGeneral = subtotal.add(importeIgv).setScale(2, RoundingMode.HALF_UP);
 
         BigDecimal totalImpuestos = BigDecimal.ZERO;
 
@@ -327,12 +329,12 @@ public class CompraServiceImpl implements CompraService {
 
         return new TotalesCompra(
                 pesoTotal.setScale(2, RoundingMode.HALF_UP),
-                subtotalTributario.setScale(2, RoundingMode.HALF_UP),
+                subtotal.setScale(2, RoundingMode.HALF_UP),
                 totalImpuestos.setScale(2, RoundingMode.HALF_UP),
                 aplicaIgv,
                 porcentajeIgv,
                 importeIgv,
-                baseImpuestos.setScale(2, RoundingMode.HALF_UP)
+                totalGeneral
         );
     }
 
