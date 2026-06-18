@@ -7,7 +7,10 @@ public class RecepcionDetalleItemResponse {
     private Integer idRecepcionDetalle;
     private Integer idCompraDetalle;
     private Integer idArticulo;
+    private Integer idCategoria;
     private String articulo;
+    private String descripcionCategoria;
+    private String tipoEnvase;
     private String medida;
     private BigDecimal pesoComprado;
     private BigDecimal recibido;
@@ -41,12 +44,36 @@ public class RecepcionDetalleItemResponse {
         this.idArticulo = idArticulo;
     }
 
+    public Integer getIdCategoria() {
+        return idCategoria;
+    }
+
+    public void setIdCategoria(Integer idCategoria) {
+        this.idCategoria = idCategoria;
+    }
+
     public String getArticulo() {
         return articulo;
     }
 
     public void setArticulo(String articulo) {
         this.articulo = articulo;
+    }
+
+    public String getDescripcionCategoria() {
+        return descripcionCategoria;
+    }
+
+    public void setDescripcionCategoria(String descripcionCategoria) {
+        this.descripcionCategoria = descripcionCategoria;
+    }
+
+    public String getTipoEnvase() {
+        return tipoEnvase;
+    }
+
+    public void setTipoEnvase(String tipoEnvase) {
+        this.tipoEnvase = tipoEnvase;
     }
 
     public String getMedida() {

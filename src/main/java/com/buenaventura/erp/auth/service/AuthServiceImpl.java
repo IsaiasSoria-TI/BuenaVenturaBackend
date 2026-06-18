@@ -28,25 +28,19 @@ public class AuthServiceImpl implements AuthService {
         String username = request.getUsuario().trim();
         String password = request.getContrasena().trim();
 
-        System.out.println("Usuario recibido: [" + username + "]");
-        System.out.println("Contrasena recibida: [" + password + "]");
-
         Usuario usuario = usuarioRepository.findByUsuarioIgnoreCaseAndFlgActivoTrue(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado o inactivo"));
-
-        System.out.println("Usuario BD: [" + usuario.getUsuario() + "]");
-        System.out.println("Contrasena BD: [" + usuario.getContrasena() + "]");
+                .orElseThrow(() -> new RuntimeException("Credenciales invalidas"));
 
         if (usuario.getRol() == null || usuario.getRol().getFlgActivo() == null || !usuario.getRol().getFlgActivo()) {
-            throw new RuntimeException("El rol del usuario está inactivo");
+            throw new RuntimeException("Usuario no autorizado");
         }
 
         if (usuario.getPersona() == null || usuario.getPersona().getFlgActivo() == null || !usuario.getPersona().getFlgActivo()) {
-            throw new RuntimeException("La persona asociada al usuario está inactiva");
+            throw new RuntimeException("Usuario no autorizado");
         }
 
-        if (!password.equals(usuario.getContrasena())) {
-            throw new RuntimeException("Contraseña incorrecta");
+        if (!isPasswordValid(password, usuario)) {
+            throw new RuntimeException("Credenciales invalidas");
         }
 
         String token = jwtService.generateToken(
@@ -64,5 +58,32 @@ public class AuthServiceImpl implements AuthService {
                 usuario.getPersona().getApellidoMaterno(),
                 usuario.getPersona().getNombreCompleto()
         );
+    }
+
+    private boolean isPasswordValid(String rawPassword, Usuario usuario) {
+        String storedPassword = usuario.getContrasena();
+
+        if (storedPassword == null || storedPassword.isBlank()) {
+            return false;
+        }
+
+        if (isBcryptHash(storedPassword)) {
+            return passwordEncoder.matches(rawPassword, storedPassword);
+        }
+
+        boolean matchesPlainTextPassword = rawPassword.equals(storedPassword);
+
+        if (matchesPlainTextPassword) {
+            usuario.setContrasena(passwordEncoder.encode(rawPassword));
+            usuarioRepository.save(usuario);
+        }
+
+        return matchesPlainTextPassword;
+    }
+
+    private boolean isBcryptHash(String password) {
+        return password.startsWith("$2a$")
+                || password.startsWith("$2b$")
+                || password.startsWith("$2y$");
     }
 }

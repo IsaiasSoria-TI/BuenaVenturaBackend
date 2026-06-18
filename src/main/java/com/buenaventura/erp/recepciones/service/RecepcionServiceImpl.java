@@ -270,6 +270,11 @@ public class RecepcionServiceImpl implements RecepcionService {
         response.setIdCompraDetalle(compraDetalle.getIdCompraDetalle());
         response.setIdArticulo(compraDetalle.getArticulo().getIdArticulo());
         response.setArticulo(compraDetalle.getArticulo().getDescripcion());
+        if (compraDetalle.getArticulo().getCategoria() != null) {
+            response.setIdCategoria(compraDetalle.getArticulo().getCategoria().getIdCategoria());
+            response.setDescripcionCategoria(compraDetalle.getArticulo().getCategoria().getDescripcion());
+            response.setTipoEnvase(compraDetalle.getArticulo().getCategoria().getDescripcion());
+        }
         response.setMedida(compraDetalle.getArticulo().getMedida());
         response.setPesoComprado(compraDetalle.getPeso());
         response.setTotalRecibido(totalRecibido);
@@ -296,6 +301,11 @@ public class RecepcionServiceImpl implements RecepcionService {
                     response.setIdCompraDetalle(detalle.getCompraDetalle().getIdCompraDetalle());
                     response.setIdArticulo(detalle.getCompraDetalle().getArticulo().getIdArticulo());
                     response.setArticulo(detalle.getCompraDetalle().getArticulo().getDescripcion());
+                    if (detalle.getCompraDetalle().getArticulo().getCategoria() != null) {
+                        response.setIdCategoria(detalle.getCompraDetalle().getArticulo().getCategoria().getIdCategoria());
+                        response.setDescripcionCategoria(detalle.getCompraDetalle().getArticulo().getCategoria().getDescripcion());
+                        response.setTipoEnvase(detalle.getCompraDetalle().getArticulo().getCategoria().getDescripcion());
+                    }
                     response.setMedida(detalle.getCompraDetalle().getArticulo().getMedida());
                     response.setPesoComprado(detalle.getCompraDetalle().getPeso());
                     response.setRecibido(detalle.getRecibido());

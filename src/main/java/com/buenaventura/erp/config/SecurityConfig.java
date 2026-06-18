@@ -38,13 +38,6 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/api/proveedores", "/api/proveedores/**").permitAll()
-                        .requestMatchers("/api/impuestos", "/api/impuestos/**").permitAll()
-                        .requestMatchers("/api/pagos", "/api/pagos/**").permitAll()
-                        .requestMatchers("/api/recepciones", "/api/recepciones/**").permitAll()
-                        .requestMatchers("/api/cuentas-contables/**").permitAll()
-                        .requestMatchers("/api/categorias/**").permitAll()
-                        .requestMatchers("/api/articulos/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

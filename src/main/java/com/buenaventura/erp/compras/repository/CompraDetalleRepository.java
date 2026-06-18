@@ -10,13 +10,14 @@ import java.util.List;
 
 public interface CompraDetalleRepository extends JpaRepository<CompraDetalle, Integer> {
 
-    @EntityGraph(attributePaths = {"articulo", "compra"})
+    @EntityGraph(attributePaths = {"articulo", "articulo.categoria", "compra"})
     List<CompraDetalle> findByCompra_IdComprasAndFlgActivoTrueOrderByIdCompraDetalleAsc(Integer idCompras);
 
     @Query("""
             select detalle
             from CompraDetalle detalle
-            join fetch detalle.articulo
+            join fetch detalle.articulo articulo
+            join fetch articulo.categoria
             join fetch detalle.compra compra
             where compra.idCompras in :idsCompras
               and detalle.flgActivo = true

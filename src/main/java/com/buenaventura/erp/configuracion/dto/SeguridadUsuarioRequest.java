@@ -1,46 +1,53 @@
-package com.buenaventura.erp.persona.entity;
+package com.buenaventura.erp.configuracion.dto;
 
-import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
-@Entity
-@Table(name = "tb_persona")
-public class Persona {
+public class SeguridadUsuarioRequest {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "IdPersona")
-    private Integer idPersona;
+    @NotBlank(message = "El usuario es obligatorio")
+    @Size(max = 50, message = "El usuario no puede superar 50 caracteres")
+    private String usuario;
 
-    @Column(name = "Nombres", nullable = false, length = 120)
+    @Size(max = 120, message = "La contrasena no puede superar 120 caracteres")
+    private String contrasena;
+
+    @NotBlank(message = "Los nombres son obligatorios")
+    @Size(max = 120, message = "Los nombres no pueden superar 120 caracteres")
     private String nombres;
 
-    @Column(name = "ApellidoPaterno", nullable = false, length = 35)
+    @NotBlank(message = "El apellido paterno es obligatorio")
+    @Size(max = 35, message = "El apellido paterno no puede superar 35 caracteres")
     private String apellidoPaterno;
 
-    @Column(name = "ApellidoMaterno", length = 35)
+    @Size(max = 35, message = "El apellido materno no puede superar 35 caracteres")
     private String apellidoMaterno;
 
-    @Column(name = "Telefono", nullable = false, length = 9)
+    @Size(max = 9, message = "El telefono no puede superar 9 caracteres")
     private String telefono;
 
-    @Column(name = "DNI", nullable = false, length = 8)
+    @Size(max = 8, message = "El DNI no puede superar 8 caracteres")
     private String dni;
 
-    @Column(name = "Correo", length = 150)
+    @Size(max = 150, message = "El correo no puede superar 150 caracteres")
     private String correo;
 
-    @Column(name = "FlgActivo")
     private Boolean flgActivo;
 
-    public Persona() {
+    public String getUsuario() {
+        return usuario;
     }
 
-    public Integer getIdPersona() {
-        return idPersona;
+    public void setUsuario(String usuario) {
+        this.usuario = usuario;
     }
 
-    public void setIdPersona(Integer idPersona) {
-        this.idPersona = idPersona;
+    public String getContrasena() {
+        return contrasena;
+    }
+
+    public void setContrasena(String contrasena) {
+        this.contrasena = contrasena;
     }
 
     public String getNombres() {
@@ -97,9 +104,5 @@ public class Persona {
 
     public void setFlgActivo(Boolean flgActivo) {
         this.flgActivo = flgActivo;
-    }
-
-    public String getNombreCompleto() {
-        return nombres + " " + apellidoPaterno + " " + apellidoMaterno;
     }
 }

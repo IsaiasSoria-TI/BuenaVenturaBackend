@@ -32,12 +32,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String path = request.getServletPath();
 
-        // Rutas públicas: no intentar validar JWT aquí
-        if (path.startsWith("/auth/")
-                || path.startsWith("/api/proveedores")
-                || path.startsWith("/api/impuestos")
-                || path.startsWith("/api/pagos")
-                || path.startsWith("/api/recepciones")) {
+        // Rutas publicas: no intentar validar JWT aqui.
+        if (path.startsWith("/auth/")) {
             filterChain.doFilter(request, response);
             return;
         }

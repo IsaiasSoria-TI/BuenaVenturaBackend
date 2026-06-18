@@ -14,7 +14,6 @@ public class PerfilUpdateRequest {
     @Size(max = 35, message = "El apellido paterno no debe exceder 35 caracteres")
     private String apellidoPaterno;
 
-    @NotBlank(message = "El apellido materno es obligatorio")
     @Size(max = 35, message = "El apellido materno no debe exceder 35 caracteres")
     private String apellidoMaterno;
 
