@@ -37,8 +37,9 @@ public class ArticuloServiceImpl implements ArticuloService {
                 .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
 
         Articulo articulo = new Articulo();
-        articulo.setDescripcion(request.getDescripcion());
-        articulo.setMedida(request.getMedida());
+        articulo.setDescripcion(request.getDescripcion().trim());
+        articulo.setMedida(request.getMedida().trim());
+        articulo.setTipoEnvase(request.getTipoEnvase().trim());
         articulo.setStock(request.getStock() == null ? BigDecimal.ZERO : request.getStock());
         articulo.setCategoria(categoria);
         articulo.setEstado(
@@ -59,8 +60,9 @@ public class ArticuloServiceImpl implements ArticuloService {
         Categoria categoria = categoriaRepository.findById(request.getIdCategoria())
                 .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
 
-        articulo.setDescripcion(request.getDescripcion());
-        articulo.setMedida(request.getMedida());
+        articulo.setDescripcion(request.getDescripcion().trim());
+        articulo.setMedida(request.getMedida().trim());
+        articulo.setTipoEnvase(request.getTipoEnvase().trim());
         articulo.setStock(request.getStock() == null ? BigDecimal.ZERO : request.getStock());
         articulo.setCategoria(categoria);
         articulo.setEstado(
@@ -87,6 +89,7 @@ public class ArticuloServiceImpl implements ArticuloService {
         response.setIdArticulo(articulo.getIdArticulo());
         response.setDescripcion(articulo.getDescripcion());
         response.setMedida(articulo.getMedida());
+        response.setTipoEnvase(articulo.getTipoEnvase());
         response.setStock(articulo.getStock());
         response.setIdCategoria(
                 articulo.getCategoria() != null ? articulo.getCategoria().getIdCategoria() : null

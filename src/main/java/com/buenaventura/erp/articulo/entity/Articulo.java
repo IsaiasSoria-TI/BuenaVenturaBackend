@@ -20,6 +20,9 @@ public class Articulo {
     @Column(name = "Medida", nullable = false, length = 50)
     private String medida;
 
+    @Column(name = "TipoEnvase", nullable = false, length = 50)
+    private String tipoEnvase;
+
     @Column(name = "Stock", nullable = false, precision = 10, scale = 2)
     private BigDecimal stock;
 
@@ -55,6 +58,14 @@ public class Articulo {
 
     public void setMedida(String medida) {
         this.medida = medida;
+    }
+
+    public String getTipoEnvase() {
+        return tipoEnvase;
+    }
+
+    public void setTipoEnvase(String tipoEnvase) {
+        this.tipoEnvase = tipoEnvase;
     }
 
     public BigDecimal getStock() {

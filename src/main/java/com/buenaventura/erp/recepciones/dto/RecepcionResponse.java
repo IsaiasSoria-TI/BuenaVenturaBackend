@@ -10,7 +10,8 @@ public class RecepcionResponse {
     private Integer idCompras;
     private LocalDateTime fechaRecepcion;
     private String guiaRemision;
-    private BigDecimal cantidadJabas;
+    private String tipoEnvase;
+    private Integer cantidadEnvase;
     private String estado;
 
     private String estadoCompra;
@@ -63,12 +64,20 @@ public class RecepcionResponse {
         this.guiaRemision = guiaRemision;
     }
 
-    public BigDecimal getCantidadJabas() {
-        return cantidadJabas;
+    public String getTipoEnvase() {
+        return tipoEnvase;
     }
 
-    public void setCantidadJabas(BigDecimal cantidadJabas) {
-        this.cantidadJabas = cantidadJabas;
+    public void setTipoEnvase(String tipoEnvase) {
+        this.tipoEnvase = tipoEnvase;
+    }
+
+    public Integer getCantidadEnvase() {
+        return cantidadEnvase;
+    }
+
+    public void setCantidadEnvase(Integer cantidadEnvase) {
+        this.cantidadEnvase = cantidadEnvase;
     }
 
     public String getEstado() {

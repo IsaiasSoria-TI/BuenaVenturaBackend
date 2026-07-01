@@ -21,7 +21,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class RecepcionServiceImpl implements RecepcionService {
@@ -29,8 +32,7 @@ public class RecepcionServiceImpl implements RecepcionService {
     private static final String ESTADO_PENDIENTE = "Pendiente";
     private static final String ESTADO_COMPLETA_PARCIAL = "Completa parcial";
     private static final String ESTADO_COMPLETA = "Completa";
-    private static final BigDecimal ZERO_2 = BigDecimal.ZERO.setScale(2);
-
+    private static final ZoneId ZONA_PERU = ZoneId.of("America/Lima");
     private final RecepcionRepository recepcionRepository;
     private final RecepcionDetalleRepository recepcionDetalleRepository;
     private final CompraRepository compraRepository;
@@ -72,11 +74,12 @@ public class RecepcionServiceImpl implements RecepcionService {
             throw new RuntimeException("Debe agregar al menos un detalle de recepción");
         }
 
-        if (request.getCantidadJabas() != null && request.getCantidadJabas().compareTo(BigDecimal.ZERO) < 0) {
-            throw new RuntimeException("La cantidad de jabas no puede ser negativa");
+        if (request.getCantidadEnvase() != null && request.getCantidadEnvase() < 0) {
+            throw new RuntimeException("La cantidad de envase no puede ser negativa");
         }
 
         BigDecimal totalRecibidoRecepcion = BigDecimal.ZERO;
+        Set<String> tiposEnvaseRecepcion = new LinkedHashSet<>();
 
         for (RecepcionDetalleRequest detalleRequest : request.getDetalles()) {
             if (detalleRequest.getRecibido() == null ||
@@ -90,6 +93,8 @@ public class RecepcionServiceImpl implements RecepcionService {
             if (!compraDetalle.getCompra().getIdCompras().equals(compra.getIdCompras())) {
                 throw new RuntimeException("El detalle no pertenece a la compra seleccionada");
             }
+
+            agregarTipoEnvase(tiposEnvaseRecepcion, compraDetalle);
 
             BigDecimal recibidoActual = recepcionDetalleRepository
                     .sumarRecibidoPorCompraDetalle(compraDetalle.getIdCompraDetalle());
@@ -109,9 +114,10 @@ public class RecepcionServiceImpl implements RecepcionService {
         Recepcion recepcion = new Recepcion();
         recepcion.setCompra(compra);
         recepcion.setRecibido(totalRecibidoRecepcion);
-        recepcion.setFechaRecepcion(LocalDateTime.now());
+        recepcion.setFechaRecepcion(LocalDateTime.now(ZONA_PERU));
         recepcion.setGuiaRemision(normalizarGuiaRemision(request.getGuiaRemision()));
-        recepcion.setCantidadJabas(normalizarCantidadJabas(request.getCantidadJabas()));
+        recepcion.setTipoEnvase(formatearTiposEnvase(tiposEnvaseRecepcion));
+        recepcion.setCantidadEnvase(normalizarCantidadEnvase(request.getCantidadEnvase()));
         recepcion.setEstado(ESTADO_COMPLETA_PARCIAL);
 
         Recepcion guardada = recepcionRepository.save(recepcion);
@@ -168,12 +174,13 @@ public class RecepcionServiceImpl implements RecepcionService {
         Recepcion recepcion = recepcionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("La recepciÃ³n no existe"));
 
-        if (request.getCantidadJabas() != null && request.getCantidadJabas().compareTo(BigDecimal.ZERO) < 0) {
-            throw new RuntimeException("La cantidad de jabas no puede ser negativa");
+        if (request.getCantidadEnvase() != null && request.getCantidadEnvase() < 0) {
+            throw new RuntimeException("La cantidad de envase no puede ser negativa");
         }
 
         recepcion.setGuiaRemision(normalizarGuiaRemision(request.getGuiaRemision()));
-        recepcion.setCantidadJabas(normalizarCantidadJabas(request.getCantidadJabas()));
+        recepcion.setTipoEnvase(obtenerTipoEnvaseRecepcion(recepcion));
+        recepcion.setCantidadEnvase(normalizarCantidadEnvase(request.getCantidadEnvase()));
 
         return toResponse(recepcionRepository.save(recepcion));
     }
@@ -273,8 +280,8 @@ public class RecepcionServiceImpl implements RecepcionService {
         if (compraDetalle.getArticulo().getCategoria() != null) {
             response.setIdCategoria(compraDetalle.getArticulo().getCategoria().getIdCategoria());
             response.setDescripcionCategoria(compraDetalle.getArticulo().getCategoria().getDescripcion());
-            response.setTipoEnvase(compraDetalle.getArticulo().getCategoria().getDescripcion());
         }
+        response.setTipoEnvase(compraDetalle.getArticulo().getTipoEnvase());
         response.setMedida(compraDetalle.getArticulo().getMedida());
         response.setPesoComprado(compraDetalle.getPeso());
         response.setTotalRecibido(totalRecibido);
@@ -304,8 +311,8 @@ public class RecepcionServiceImpl implements RecepcionService {
                     if (detalle.getCompraDetalle().getArticulo().getCategoria() != null) {
                         response.setIdCategoria(detalle.getCompraDetalle().getArticulo().getCategoria().getIdCategoria());
                         response.setDescripcionCategoria(detalle.getCompraDetalle().getArticulo().getCategoria().getDescripcion());
-                        response.setTipoEnvase(detalle.getCompraDetalle().getArticulo().getCategoria().getDescripcion());
                     }
+                    response.setTipoEnvase(detalle.getCompraDetalle().getArticulo().getTipoEnvase());
                     response.setMedida(detalle.getCompraDetalle().getArticulo().getMedida());
                     response.setPesoComprado(detalle.getCompraDetalle().getPeso());
                     response.setRecibido(detalle.getRecibido());
@@ -320,7 +327,8 @@ public class RecepcionServiceImpl implements RecepcionService {
         response.setIdRecepciones(recepcion.getIdRecepciones());
         response.setFechaRecepcion(recepcion.getFechaRecepcion());
         response.setGuiaRemision(recepcion.getGuiaRemision());
-        response.setCantidadJabas(recepcion.getCantidadJabas());
+        response.setTipoEnvase(recepcion.getTipoEnvase());
+        response.setCantidadEnvase(recepcion.getCantidadEnvase());
         response.setEstado(recepcion.getEstado());
         response.setIdCompras(recepcion.getCompra().getIdCompras());
         response.setPesoComprado(recepcion.getCompra().getPeso());
@@ -355,8 +363,39 @@ public class RecepcionServiceImpl implements RecepcionService {
         return normalizado.isBlank() ? null : normalizado;
     }
 
-    private BigDecimal normalizarCantidadJabas(BigDecimal cantidadJabas) {
-        return cantidadJabas == null ? ZERO_2 : cantidadJabas.setScale(2, RoundingMode.HALF_UP);
+    private Integer normalizarCantidadEnvase(Integer cantidadEnvase) {
+        return cantidadEnvase == null ? 0 : cantidadEnvase;
+    }
+
+    private void agregarTipoEnvase(Set<String> tiposEnvase, CompraDetalle compraDetalle) {
+        if (compraDetalle == null || compraDetalle.getArticulo() == null) {
+            return;
+        }
+
+        String tipoEnvase = compraDetalle.getArticulo().getTipoEnvase();
+        if (tipoEnvase != null && !tipoEnvase.isBlank()) {
+            tiposEnvase.add(tipoEnvase.trim());
+        }
+    }
+
+    private String obtenerTipoEnvaseRecepcion(Recepcion recepcion) {
+        Set<String> tiposEnvase = new LinkedHashSet<>();
+
+        recepcionDetalleRepository
+                .findByRecepcion_IdRecepcionesAndFlgActivoTrueOrderByIdRecepcionDetalleAsc(
+                        recepcion.getIdRecepciones()
+                )
+                .forEach(detalle -> agregarTipoEnvase(tiposEnvase, detalle.getCompraDetalle()));
+
+        return formatearTiposEnvase(tiposEnvase);
+    }
+
+    private String formatearTiposEnvase(Set<String> tiposEnvase) {
+        if (tiposEnvase == null || tiposEnvase.isEmpty()) {
+            return null;
+        }
+
+        return String.join(", ", tiposEnvase);
     }
 
     private RecepcionResponse toCompraPendienteResponse(Compra compra) {

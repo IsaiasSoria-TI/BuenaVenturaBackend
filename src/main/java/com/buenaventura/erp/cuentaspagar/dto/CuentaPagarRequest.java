@@ -2,8 +2,6 @@ package com.buenaventura.erp.cuentaspagar.dto;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
 import java.util.List;
@@ -19,13 +17,13 @@ public class CuentaPagarRequest {
 
     private String numeroFactura;
 
-    @NotBlank(message = "La moneda es obligatoria")
     private String moneda;
 
-    @NotBlank(message = "El código de detracción/retención es obligatorio")
+    @NotBlank(message = "El codigo de detraccion/retencion es obligatorio")
     private String codigoDetRet;
 
-    @NotEmpty(message = "Debes seleccionar al menos una recepción")
+    private Boolean manual;
+
     @Valid
     private List<CuentaPagarRegistroDetalleRequest> detalles;
 
@@ -64,6 +62,14 @@ public class CuentaPagarRequest {
         this.codigoDetRet = codigoDetRet;
     }
 
+    public Boolean getManual() {
+        return manual;
+    }
+
+    public void setManual(Boolean manual) {
+        this.manual = manual;
+    }
+
     public List<CuentaPagarRegistroDetalleRequest> getDetalles() {
         return detalles;
     }
@@ -74,10 +80,8 @@ public class CuentaPagarRequest {
 
     public static class CuentaPagarRegistroDetalleRequest {
 
-        @NotNull(message = "El idCompras es obligatorio")
         private Integer idCompras;
 
-        @NotNull(message = "El idRecepciones es obligatorio")
         private Integer idRecepciones;
 
         private String numeroFactura;

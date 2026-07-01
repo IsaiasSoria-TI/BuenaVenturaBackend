@@ -24,6 +24,7 @@ public class CuentaPagarResponse {
     private String ruc;
     private String articulo;
     private String estadoRecepcion;
+    private Boolean manual;
     private List<CuentaPagarDetalleResponse> detalles;
 
     public CuentaPagarResponse() {
@@ -171,6 +172,14 @@ public class CuentaPagarResponse {
 
     public void setEstadoRecepcion(String estadoRecepcion) {
         this.estadoRecepcion = estadoRecepcion;
+    }
+
+    public Boolean getManual() {
+        return manual;
+    }
+
+    public void setManual(Boolean manual) {
+        this.manual = manual;
     }
 
     public List<CuentaPagarDetalleResponse> getDetalles() {

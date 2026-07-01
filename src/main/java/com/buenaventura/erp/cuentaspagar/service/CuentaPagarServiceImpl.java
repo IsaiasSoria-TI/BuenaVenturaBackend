@@ -126,7 +126,11 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
     @Override
     public List<CuentaPagarResponse> registrar(CuentaPagarRequest request) {
         validarRequestRegistro(request);
-        request.setMoneda(resolverCodigoMoneda(request.getMoneda()));
+
+        if (esFacturaManual(request)) {
+            request.setMoneda(resolverCodigoMoneda(request.getMoneda()));
+            return List.of(registrarManual(request));
+        }
 
         return request.getDetalles()
                 .stream()
@@ -138,15 +142,34 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
     public CuentaPagarResponse actualizar(Integer id, CuentaPagarRequest request) {
         validarRequestRegistro(request);
 
-        if (request.getDetalles().size() != 1) {
-            throw new RuntimeException("Para actualizar debes enviar un solo detalle");
-        }
-
         CuentaPagar cuentaPagar = cuentaPagarRepository.findByIdCuentaPagarAndFlgActivoTrue(id)
                 .orElseThrow(() -> new RuntimeException("Cuenta por pagar no encontrada"));
 
+        if (esFacturaManual(request)) {
+            String codigoMoneda = resolverCodigoMoneda(request.getMoneda());
+            cuentaPagar.setIdCompras(null);
+            cuentaPagar.setIdRecepciones(null);
+            cuentaPagar.setNumeroFactura(request.getNumeroFactura().trim());
+            cuentaPagar.setMoneda(codigoMoneda);
+            cuentaPagar.setCodigoDetRet(request.getCodigoDetRet().trim());
+
+            if (cuentaPagar.getEstado() == null || cuentaPagar.getEstado().isBlank()) {
+                cuentaPagar.setEstado(ESTADO_PENDIENTE);
+            }
+
+            cuentaPagar.setFechaActualizacion(LocalDateTime.now());
+
+            CuentaPagar actualizado = cuentaPagarRepository.save(cuentaPagar);
+            inactivarDetallesCuentaPagar(actualizado);
+
+            return toResponse(actualizado, null, null);
+        }
+
+        if (request.getDetalles() == null || request.getDetalles().size() != 1) {
+            throw new RuntimeException("Para actualizar debes enviar un solo detalle");
+        }
+
         CuentaPagarRequest.CuentaPagarRegistroDetalleRequest detalle = request.getDetalles().get(0);
-        String codigoMoneda = resolverCodigoMoneda(request.getMoneda());
 
         Compra compra = compraRepository.findById(detalle.getIdCompras())
                 .orElseThrow(() -> new RuntimeException("La compra no existe"));
@@ -160,7 +183,7 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
 
         validarEstadoRecepcion(recepcion.getEstado());
 
-        if (!cuentaPagar.getIdRecepciones().equals(detalle.getIdRecepciones())
+        if (!detalle.getIdRecepciones().equals(cuentaPagar.getIdRecepciones())
                 && cuentaPagarRepository.existsByIdRecepcionesAndFlgActivoTrue(detalle.getIdRecepciones())) {
             throw new RuntimeException("La recepción ya tiene una cuenta por pagar registrada");
         }
@@ -168,7 +191,7 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
         cuentaPagar.setIdCompras(detalle.getIdCompras());
         cuentaPagar.setIdRecepciones(detalle.getIdRecepciones());
         cuentaPagar.setNumeroFactura(obtenerNumeroFactura(request, detalle));
-        cuentaPagar.setMoneda(obtenerCodigoMonedaCompra(compra, codigoMoneda));
+        cuentaPagar.setMoneda(obtenerCodigoMonedaCompra(compra));
         cuentaPagar.setCodigoDetRet(request.getCodigoDetRet().trim());
 
         if (cuentaPagar.getEstado() == null || cuentaPagar.getEstado().isBlank()) {
@@ -198,6 +221,21 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
         inactivarDetallesCuentaPagar(cuentaPagar);
     }
 
+    private CuentaPagarResponse registrarManual(CuentaPagarRequest request) {
+        CuentaPagar cuentaPagar = new CuentaPagar();
+        cuentaPagar.setIdCompras(null);
+        cuentaPagar.setIdRecepciones(null);
+        cuentaPagar.setNumeroFactura(request.getNumeroFactura().trim());
+        cuentaPagar.setMoneda(request.getMoneda());
+        cuentaPagar.setCodigoDetRet(request.getCodigoDetRet().trim());
+        cuentaPagar.setEstado(ESTADO_PENDIENTE);
+        cuentaPagar.setFlgActivo(true);
+        cuentaPagar.setFechaActualizacion(LocalDateTime.now());
+
+        CuentaPagar guardado = cuentaPagarRepository.save(cuentaPagar);
+        return toResponse(guardado, null, null);
+    }
+
     private CuentaPagarResponse registrarDetalle(
             CuentaPagarRequest request,
             CuentaPagarRequest.CuentaPagarRegistroDetalleRequest detalle
@@ -222,7 +260,7 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
         cuentaPagar.setIdCompras(compra.getIdCompras());
         cuentaPagar.setIdRecepciones(recepcion.getIdRecepciones());
         cuentaPagar.setNumeroFactura(obtenerNumeroFactura(request, detalle));
-        cuentaPagar.setMoneda(obtenerCodigoMonedaCompra(compra, request.getMoneda()));
+        cuentaPagar.setMoneda(obtenerCodigoMonedaCompra(compra));
         cuentaPagar.setCodigoDetRet(request.getCodigoDetRet().trim());
         cuentaPagar.setEstado(ESTADO_PENDIENTE);
         cuentaPagar.setFlgActivo(true);
@@ -303,6 +341,24 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
     }
 
     private void validarRequestRegistro(CuentaPagarRequest request) {
+        boolean manual = esFacturaManual(request);
+
+        if (manual && !"UNICA".equalsIgnoreCase(request.getTipoFactura())) {
+            throw new RuntimeException("La factura manual debe ser de tipo UNICA");
+        }
+
+        if (manual && (request.getMoneda() == null || request.getMoneda().isBlank())) {
+            throw new RuntimeException("La moneda es obligatoria para una factura manual");
+        }
+
+        if (!manual && (request.getDetalles() == null || request.getDetalles().isEmpty())) {
+            throw new RuntimeException("Debes seleccionar al menos una recepcion");
+        }
+
+        if (!manual) {
+            request.getDetalles().forEach(this::validarDetalleVinculado);
+        }
+
         if ("UNICA".equalsIgnoreCase(request.getTipoFactura())) {
             if (request.getNumeroFactura() == null || request.getNumeroFactura().isBlank()) {
                 throw new RuntimeException("Para tipo de factura UNICA, el número de factura es obligatorio");
@@ -315,6 +371,16 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
                     throw new RuntimeException("Para tipo de factura MULTIPLE, cada detalle debe tener número de factura");
                 }
             }
+        }
+    }
+
+    private boolean esFacturaManual(CuentaPagarRequest request) {
+        return Boolean.TRUE.equals(request.getManual());
+    }
+
+    private void validarDetalleVinculado(CuentaPagarRequest.CuentaPagarRegistroDetalleRequest detalle) {
+        if (detalle == null || detalle.getIdCompras() == null || detalle.getIdRecepciones() == null) {
+            throw new RuntimeException("Debes enviar compra y recepcion para una cuenta por pagar vinculada");
         }
     }
 
@@ -371,8 +437,12 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
     }
 
     private CuentaPagarResponse toResponse(CuentaPagar cuentaPagar) {
-        Compra compra = compraRepository.findById(cuentaPagar.getIdCompras()).orElse(null);
-        Recepcion recepcion = recepcionRepository.findById(cuentaPagar.getIdRecepciones()).orElse(null);
+        Compra compra = cuentaPagar.getIdCompras() == null
+                ? null
+                : compraRepository.findById(cuentaPagar.getIdCompras()).orElse(null);
+        Recepcion recepcion = cuentaPagar.getIdRecepciones() == null
+                ? null
+                : recepcionRepository.findById(cuentaPagar.getIdRecepciones()).orElse(null);
         return toResponse(cuentaPagar, compra, recepcion);
     }
 
@@ -389,6 +459,7 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
         response.setFlgActivo(cuentaPagar.getFlgActivo());
         response.setFechaCreacion(cuentaPagar.getFechaCreacion());
         response.setFechaActualizacion(cuentaPagar.getFechaActualizacion());
+        response.setManual(cuentaPagar.getIdCompras() == null && cuentaPagar.getIdRecepciones() == null);
 
         if (compra != null) {
             response.setProveedor(compra.getProveedor().getRazonSocial());
@@ -399,6 +470,8 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
             if (compra.getArticulo() != null) {
                 response.setArticulo(compra.getArticulo().getDescripcion());
             }
+        } else {
+            completarMoneda(response, cuentaPagar.getMoneda());
         }
 
         if (recepcion != null) {
@@ -437,12 +510,12 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    private String obtenerCodigoMonedaCompra(Compra compra, String fallback) {
+    private String obtenerCodigoMonedaCompra(Compra compra) {
         if (compra != null && compra.getMoneda() != null && compra.getMoneda().getCodigo() != null) {
             return compra.getMoneda().getCodigo().trim();
         }
 
-        return fallback == null ? null : fallback.trim();
+        throw new RuntimeException("La compra no tiene moneda configurada");
     }
 
     private void completarMoneda(CompraValidaResponse response, Compra compra) {
@@ -479,6 +552,19 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
         response.setCodigoMoneda(moneda.getCodigo());
         response.setMoneda(moneda.getCodigo());
         response.setSimboloMoneda(moneda.getSimbolo());
+    }
+
+    private void completarMoneda(CuentaPagarResponse response, String codigo) {
+        if (codigo == null || codigo.isBlank()) {
+            return;
+        }
+
+        monedaRepository.findByCodigoIgnoreCase(codigo.trim()).ifPresent(moneda -> {
+            response.setIdMoneda(moneda.getIdMoneda());
+            response.setCodigoMoneda(moneda.getCodigo());
+            response.setMoneda(moneda.getCodigo());
+            response.setSimboloMoneda(moneda.getSimbolo());
+        });
     }
 
     private CuentaPagarDetalleResponse toDetalleResponse(CuentaPagarDetalle detalle) {

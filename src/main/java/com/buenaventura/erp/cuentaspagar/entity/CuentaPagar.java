@@ -16,10 +16,10 @@ public class CuentaPagar {
     @Column(name = "IdCuentaPagar")
     private Integer idCuentaPagar;
 
-    @Column(name = "IdCompras", nullable = false)
+    @Column(name = "IdCompras")
     private Integer idCompras;
 
-    @Column(name = "IdRecepciones", nullable = false)
+    @Column(name = "IdRecepciones")
     private Integer idRecepciones;
 
     @Column(name = "NumeroFactura", nullable = false, length = 20)
@@ -28,7 +28,7 @@ public class CuentaPagar {
     @Column(name = "Moneda", nullable = false, length = 3)
     private String moneda;
 
-    @Column(name = "CodigoDetRet", nullable = false, length = 10)
+    @Column(name = "CodigoDetRet", length = 50)
     private String codigoDetRet;
 
     @Column(name = "Estado", nullable = false, length = 20)

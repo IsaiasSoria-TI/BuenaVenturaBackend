@@ -3,8 +3,8 @@ package com.buenaventura.erp.recepciones.entity;
 import com.buenaventura.erp.compras.entity.Compra;
 import jakarta.persistence.*;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "tb_recepciones")
@@ -28,8 +28,11 @@ public class Recepcion {
     @Column(name = "GuiaRemision", length = 100)
     private String guiaRemision;
 
-    @Column(name = "CantidadJabas", nullable = false, precision = 10, scale = 2)
-    private BigDecimal cantidadJabas;
+    @Column(name = "TipoEnvase", length = 50)
+    private String tipoEnvase;
+
+    @Column(name = "CantidadEnvase", nullable = false)
+    private Integer cantidadEnvase;
 
     @Column(name = "Estado", nullable = false, length = 20)
     private String estado;
@@ -77,12 +80,20 @@ public class Recepcion {
         this.guiaRemision = guiaRemision;
     }
 
-    public BigDecimal getCantidadJabas() {
-        return cantidadJabas;
+    public String getTipoEnvase() {
+        return tipoEnvase;
     }
 
-    public void setCantidadJabas(BigDecimal cantidadJabas) {
-        this.cantidadJabas = cantidadJabas;
+    public void setTipoEnvase(String tipoEnvase) {
+        this.tipoEnvase = tipoEnvase;
+    }
+
+    public Integer getCantidadEnvase() {
+        return cantidadEnvase;
+    }
+
+    public void setCantidadEnvase(Integer cantidadEnvase) {
+        this.cantidadEnvase = cantidadEnvase;
     }
 
     public String getEstado() {
