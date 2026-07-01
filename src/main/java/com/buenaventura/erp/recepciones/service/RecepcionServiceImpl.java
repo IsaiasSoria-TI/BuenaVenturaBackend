@@ -1,9 +1,13 @@
 package com.buenaventura.erp.recepciones.service;
 
+import com.buenaventura.erp.articulo.entity.Articulo;
+import com.buenaventura.erp.articulo.repository.ArticuloRepository;
 import com.buenaventura.erp.compras.entity.Compra;
 import com.buenaventura.erp.compras.entity.CompraDetalle;
 import com.buenaventura.erp.compras.repository.CompraDetalleRepository;
 import com.buenaventura.erp.compras.repository.CompraRepository;
+import com.buenaventura.erp.inventario.consultastock.entity.ConsultaStockMovimiento;
+import com.buenaventura.erp.inventario.consultastock.repository.ConsultaStockMovimientoRepository;
 import com.buenaventura.erp.moneda.entity.Moneda;
 import com.buenaventura.erp.recepciones.dto.RecepcionDatosRequest;
 import com.buenaventura.erp.recepciones.dto.RecepcionDetalleItemResponse;
@@ -22,6 +26,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -32,20 +37,29 @@ public class RecepcionServiceImpl implements RecepcionService {
     private static final String ESTADO_PENDIENTE = "Pendiente";
     private static final String ESTADO_COMPLETA_PARCIAL = "Completa parcial";
     private static final String ESTADO_COMPLETA = "Completa";
+    private static final String TIPO_MOVIMIENTO_ENTRADA = "Entrada";
+    private static final String REFERENCIA_RECEPCION = "RECEPCION";
     private static final ZoneId ZONA_PERU = ZoneId.of("America/Lima");
+    private static final DateTimeFormatter PERIODO_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
     private final RecepcionRepository recepcionRepository;
     private final RecepcionDetalleRepository recepcionDetalleRepository;
     private final CompraRepository compraRepository;
     private final CompraDetalleRepository compraDetalleRepository;
+    private final ArticuloRepository articuloRepository;
+    private final ConsultaStockMovimientoRepository consultaStockMovimientoRepository;
 
     public RecepcionServiceImpl(RecepcionRepository recepcionRepository,
                                 RecepcionDetalleRepository recepcionDetalleRepository,
                                 CompraRepository compraRepository,
-                                CompraDetalleRepository compraDetalleRepository) {
+                                CompraDetalleRepository compraDetalleRepository,
+                                ArticuloRepository articuloRepository,
+                                ConsultaStockMovimientoRepository consultaStockMovimientoRepository) {
         this.recepcionRepository = recepcionRepository;
         this.recepcionDetalleRepository = recepcionDetalleRepository;
         this.compraRepository = compraRepository;
         this.compraDetalleRepository = compraDetalleRepository;
+        this.articuloRepository = articuloRepository;
+        this.consultaStockMovimientoRepository = consultaStockMovimientoRepository;
     }
 
     @Override
@@ -116,7 +130,7 @@ public class RecepcionServiceImpl implements RecepcionService {
         recepcion.setRecibido(totalRecibidoRecepcion);
         recepcion.setFechaRecepcion(LocalDateTime.now(ZONA_PERU));
         recepcion.setGuiaRemision(normalizarGuiaRemision(request.getGuiaRemision()));
-        recepcion.setTipoEnvase(formatearTiposEnvase(tiposEnvaseRecepcion));
+        recepcion.setTipoEnvase(resolverTipoEnvaseRecepcion(request.getTipoEnvase(), tiposEnvaseRecepcion));
         recepcion.setCantidadEnvase(normalizarCantidadEnvase(request.getCantidadEnvase()));
         recepcion.setEstado(ESTADO_COMPLETA_PARCIAL);
 
@@ -142,7 +156,8 @@ public class RecepcionServiceImpl implements RecepcionService {
             );
             detalle.setFlgActivo(true);
 
-            recepcionDetalleRepository.save(detalle);
+            RecepcionDetalle detalleGuardado = recepcionDetalleRepository.save(detalle);
+            registrarEntradaStock(guardada, detalleGuardado);
         }
 
         String nuevoEstadoCompra = calcularEstadoCompra(compra.getIdCompras());
@@ -179,7 +194,7 @@ public class RecepcionServiceImpl implements RecepcionService {
         }
 
         recepcion.setGuiaRemision(normalizarGuiaRemision(request.getGuiaRemision()));
-        recepcion.setTipoEnvase(obtenerTipoEnvaseRecepcion(recepcion));
+        recepcion.setTipoEnvase(resolverTipoEnvaseRecepcion(request.getTipoEnvase(), recepcion));
         recepcion.setCantidadEnvase(normalizarCantidadEnvase(request.getCantidadEnvase()));
 
         return toResponse(recepcionRepository.save(recepcion));
@@ -365,6 +380,66 @@ public class RecepcionServiceImpl implements RecepcionService {
 
     private Integer normalizarCantidadEnvase(Integer cantidadEnvase) {
         return cantidadEnvase == null ? 0 : cantidadEnvase;
+    }
+
+    private void registrarEntradaStock(Recepcion recepcion, RecepcionDetalle detalle) {
+        if (recepcion == null || detalle == null || detalle.getCompraDetalle() == null) {
+            return;
+        }
+
+        Articulo articulo = detalle.getCompraDetalle().getArticulo();
+        if (articulo == null) {
+            return;
+        }
+
+        BigDecimal stockInicial = articulo.getStock() == null ? BigDecimal.ZERO : articulo.getStock();
+        BigDecimal cantidad = detalle.getRecibido() == null ? BigDecimal.ZERO : detalle.getRecibido();
+        BigDecimal saldo = stockInicial.add(cantidad);
+
+        articulo.setStock(saldo);
+        articuloRepository.save(articulo);
+
+        ConsultaStockMovimiento movimiento = new ConsultaStockMovimiento();
+        movimiento.setArticulo(articulo);
+        movimiento.setFechaMovimiento(recepcion.getFechaRecepcion());
+        movimiento.setPeriodo(recepcion.getFechaRecepcion().format(PERIODO_FORMATTER));
+        movimiento.setDocumento(formatRecepcionDocumento(recepcion.getIdRecepciones()));
+        movimiento.setTipoMovimiento(TIPO_MOVIMIENTO_ENTRADA);
+        movimiento.setStockInicial(stockInicial);
+        movimiento.setMovimientoCantidad(cantidad);
+        movimiento.setSaldo(saldo);
+        movimiento.setReferenciaTipo(REFERENCIA_RECEPCION);
+        movimiento.setReferenciaId(Long.valueOf(recepcion.getIdRecepciones()));
+        movimiento.setFlgActivo(true);
+
+        consultaStockMovimientoRepository.save(movimiento);
+    }
+
+    private String formatRecepcionDocumento(Integer idRecepciones) {
+        if (idRecepciones == null) {
+            return "REC-0000";
+        }
+
+        return "REC-" + String.format("%04d", idRecepciones);
+    }
+
+    private String normalizarTipoEnvase(String tipoEnvase) {
+        if (tipoEnvase == null) {
+            return null;
+        }
+
+        String normalizado = tipoEnvase.trim();
+        return normalizado.isBlank() ? null : normalizado;
+    }
+
+    private String resolverTipoEnvaseRecepcion(String tipoEnvaseRequest, Set<String> tiposEnvaseRecepcion) {
+        String tipoEnvase = normalizarTipoEnvase(tipoEnvaseRequest);
+        return tipoEnvase != null ? tipoEnvase : formatearTiposEnvase(tiposEnvaseRecepcion);
+    }
+
+    private String resolverTipoEnvaseRecepcion(String tipoEnvaseRequest, Recepcion recepcion) {
+        String tipoEnvase = normalizarTipoEnvase(tipoEnvaseRequest);
+        return tipoEnvase != null ? tipoEnvase : obtenerTipoEnvaseRecepcion(recepcion);
     }
 
     private void agregarTipoEnvase(Set<String> tiposEnvase, CompraDetalle compraDetalle) {
