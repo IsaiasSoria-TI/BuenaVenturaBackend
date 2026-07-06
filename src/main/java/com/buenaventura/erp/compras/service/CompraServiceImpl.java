@@ -120,8 +120,7 @@ public class CompraServiceImpl implements CompraService {
         Proveedor proveedor = proveedorRepository.findById(request.getIdProveedor())
                 .orElseThrow(() -> new RuntimeException("Proveedor no encontrado"));
 
-        Articulo primerArticulo = articuloRepository.findById(request.getDetalles().get(0).getIdArticulo())
-                .orElseThrow(() -> new RuntimeException("Artículo no encontrado"));
+        Articulo primerArticulo = obtenerPrimerArticulo(request);
 
         Impuesto primerImpuesto = resolverImpuestoCabecera(request);
 
@@ -134,6 +133,7 @@ public class CompraServiceImpl implements CompraService {
         compra.setArticulo(primerArticulo);
         compra.setImpuesto(primerImpuesto);
         compra.setFechaCompras(request.getFechaCompras());
+        aplicarDatosDocumento(compra, request);
         compra.setZonaProduccion(request.getZonaProduccion());
         compra.setNumeroLote(request.getNumeroLote());
         compra.setEstado("Pendiente");
@@ -152,7 +152,7 @@ public class CompraServiceImpl implements CompraService {
         TotalesCompra totales = guardarDetallesEImpuestos(guardada, request);
 
         guardada.setPeso(totales.pesoTotal());
-        guardada.setCostoKilo(request.getDetalles().get(0).getCostoKilo());
+        guardada.setCostoKilo(obtenerPrimerCostoKilo(request));
         guardada.setCostoTotal(totales.totalGeneral());
         guardada.setImporteImpuesto(totales.totalImpuestos());
         guardada.setAplicaIgv(totales.aplicaIgv());
@@ -191,8 +191,7 @@ public class CompraServiceImpl implements CompraService {
         Proveedor proveedor = proveedorRepository.findById(request.getIdProveedor())
                 .orElseThrow(() -> new RuntimeException("Proveedor no encontrado"));
 
-        Articulo primerArticulo = articuloRepository.findById(request.getDetalles().get(0).getIdArticulo())
-                .orElseThrow(() -> new RuntimeException("Artículo no encontrado"));
+        Articulo primerArticulo = obtenerPrimerArticulo(request);
 
         Impuesto primerImpuesto = resolverImpuestoCabecera(request);
 
@@ -207,6 +206,7 @@ public class CompraServiceImpl implements CompraService {
         compra.setArticulo(primerArticulo);
         compra.setImpuesto(primerImpuesto);
         compra.setFechaCompras(request.getFechaCompras());
+        aplicarDatosDocumento(compra, request);
         compra.setZonaProduccion(request.getZonaProduccion());
         compra.setNumeroLote(request.getNumeroLote());
         compra.setFechaActualizacion(LocalDateTime.now());
@@ -220,7 +220,7 @@ public class CompraServiceImpl implements CompraService {
         TotalesCompra totales = guardarDetallesEImpuestos(guardada, request);
 
         guardada.setPeso(totales.pesoTotal());
-        guardada.setCostoKilo(request.getDetalles().get(0).getCostoKilo());
+        guardada.setCostoKilo(obtenerPrimerCostoKilo(request));
         guardada.setCostoTotal(totales.totalGeneral());
         guardada.setImporteImpuesto(totales.totalImpuestos());
         guardada.setAplicaIgv(totales.aplicaIgv());
@@ -251,18 +251,77 @@ public class CompraServiceImpl implements CompraService {
     }
 
     private void validarRequest(CompraRequest request) {
-        if (request.getDetalles() == null || request.getDetalles().isEmpty()) {
-            throw new RuntimeException("Debe agregar al menos un artículo");
-        }
-
         if (request.getPorcentajeIgv() != null && request.getPorcentajeIgv().compareTo(BigDecimal.ZERO) < 0) {
             throw new RuntimeException("El porcentaje de IGV no puede ser negativo");
         }
     }
 
+    private boolean tieneDetalles(CompraRequest request) {
+        return request.getDetalles() != null && !request.getDetalles().isEmpty();
+    }
+
+    private Articulo obtenerPrimerArticulo(CompraRequest request) {
+        if (!tieneDetalles(request)) {
+            return null;
+        }
+
+        return articuloRepository.findById(request.getDetalles().get(0).getIdArticulo())
+                .orElseThrow(() -> new RuntimeException("Artículo no encontrado"));
+    }
+
+    private BigDecimal obtenerPrimerCostoKilo(CompraRequest request) {
+        if (!tieneDetalles(request) || request.getDetalles().get(0).getCostoKilo() == null) {
+            return BigDecimal.ZERO;
+        }
+
+        return request.getDetalles().get(0).getCostoKilo();
+    }
+
+    private void aplicarDatosDocumento(Compra compra, CompraRequest request) {
+        LocalDateTime fechaEmision = request.getFechaEmision() != null
+                ? request.getFechaEmision()
+                : request.getFechaCompras();
+        LocalDateTime fechaIngresoProducto = request.getFechaIngresoProducto() != null
+                ? request.getFechaIngresoProducto()
+                : fechaEmision;
+
+        compra.setFechaEmision(fechaEmision);
+        compra.setFechaIngresoProducto(fechaIngresoProducto);
+        compra.setTipoDocumento(normalizeBlankOrDefault(request.getTipoDocumento(), "FACTURA"));
+        compra.setNumeroDocumentoProveedor(normalizeBlank(request.getNumeroDocumentoProveedor()));
+        compra.setSerieReferencia(normalizeBlank(request.getSerieReferencia()));
+        compra.setCorrelativoReferencia(normalizeBlank(request.getCorrelativoReferencia()));
+        compra.setObservacion(normalizeBlank(request.getObservacion()));
+    }
+
+    private String normalizeBlankOrDefault(String value, String defaultValue) {
+        String normalized = normalizeBlank(value);
+        return normalized != null ? normalized : defaultValue;
+    }
+
+    private String normalizeBlank(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        return value.trim();
+    }
+
     private TotalesCompra guardarDetallesEImpuestos(Compra compra, CompraRequest request) {
         BigDecimal subtotal = BigDecimal.ZERO;
         BigDecimal pesoTotal = BigDecimal.ZERO;
+
+        if (!tieneDetalles(request)) {
+            return new TotalesCompra(
+                    ZERO_2,
+                    ZERO_2,
+                    ZERO_2,
+                    Boolean.TRUE.equals(request.getAplicaIgv()),
+                    resolverPorcentajeIgv(request),
+                    ZERO_2,
+                    ZERO_2
+            );
+        }
 
         for (CompraDetalleRequest detalleRequest : request.getDetalles()) {
             Articulo articulo = articuloRepository.findById(detalleRequest.getIdArticulo())
@@ -521,6 +580,13 @@ public class CompraServiceImpl implements CompraService {
         }
 
         response.setFechaCompras(compra.getFechaCompras());
+        response.setFechaEmision(compra.getFechaEmision());
+        response.setFechaIngresoProducto(compra.getFechaIngresoProducto());
+        response.setTipoDocumento(compra.getTipoDocumento());
+        response.setNumeroDocumentoProveedor(compra.getNumeroDocumentoProveedor());
+        response.setSerieReferencia(compra.getSerieReferencia());
+        response.setCorrelativoReferencia(compra.getCorrelativoReferencia());
+        response.setObservacion(compra.getObservacion());
         response.setZonaProduccion(compra.getZonaProduccion());
         response.setNumeroLote(compra.getNumeroLote());
         response.setPeso(compra.getPeso());

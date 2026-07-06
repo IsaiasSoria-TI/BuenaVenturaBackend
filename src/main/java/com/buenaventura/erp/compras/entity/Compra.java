@@ -50,6 +50,27 @@ public class Compra {
     @Column(name = "FechaCompras")
     private LocalDateTime fechaCompras;
 
+    @Column(name = "FechaEmision")
+    private LocalDateTime fechaEmision;
+
+    @Column(name = "FechaIngresoProducto")
+    private LocalDateTime fechaIngresoProducto;
+
+    @Column(name = "TipoDocumento", nullable = false, length = 30)
+    private String tipoDocumento;
+
+    @Column(name = "NumeroDocumentoProveedor", length = 50)
+    private String numeroDocumentoProveedor;
+
+    @Column(name = "SerieReferencia", length = 20)
+    private String serieReferencia;
+
+    @Column(name = "CorrelativoReferencia", length = 30)
+    private String correlativoReferencia;
+
+    @Column(name = "Observacion", length = 500)
+    private String observacion;
+
     @Column(name = "ZonaProduccion", nullable = false, length = 100)
     private String zonaProduccion;
 
@@ -162,6 +183,62 @@ public class Compra {
 
     public void setFechaCompras(LocalDateTime fechaCompras) {
         this.fechaCompras = fechaCompras;
+    }
+
+    public LocalDateTime getFechaEmision() {
+        return fechaEmision;
+    }
+
+    public void setFechaEmision(LocalDateTime fechaEmision) {
+        this.fechaEmision = fechaEmision;
+    }
+
+    public LocalDateTime getFechaIngresoProducto() {
+        return fechaIngresoProducto;
+    }
+
+    public void setFechaIngresoProducto(LocalDateTime fechaIngresoProducto) {
+        this.fechaIngresoProducto = fechaIngresoProducto;
+    }
+
+    public String getTipoDocumento() {
+        return tipoDocumento;
+    }
+
+    public void setTipoDocumento(String tipoDocumento) {
+        this.tipoDocumento = tipoDocumento;
+    }
+
+    public String getNumeroDocumentoProveedor() {
+        return numeroDocumentoProveedor;
+    }
+
+    public void setNumeroDocumentoProveedor(String numeroDocumentoProveedor) {
+        this.numeroDocumentoProveedor = numeroDocumentoProveedor;
+    }
+
+    public String getSerieReferencia() {
+        return serieReferencia;
+    }
+
+    public void setSerieReferencia(String serieReferencia) {
+        this.serieReferencia = serieReferencia;
+    }
+
+    public String getCorrelativoReferencia() {
+        return correlativoReferencia;
+    }
+
+    public void setCorrelativoReferencia(String correlativoReferencia) {
+        this.correlativoReferencia = correlativoReferencia;
+    }
+
+    public String getObservacion() {
+        return observacion;
+    }
+
+    public void setObservacion(String observacion) {
+        this.observacion = observacion;
     }
 
     public String getZonaProduccion() {

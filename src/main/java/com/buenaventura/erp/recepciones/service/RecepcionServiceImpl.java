@@ -412,7 +412,7 @@ public class RecepcionServiceImpl implements RecepcionService {
         movimiento.setTipoMovimiento(TIPO_MOVIMIENTO_COMPRA);
         movimiento.setProveedorMotivo(resolverProveedorMovimiento(compra));
         movimiento.setDetalle(resolverDetalleMovimiento(recepcion, articulo));
-        movimiento.setTotalSoles(calcularTotalSolesMovimiento(compra, compraDetalle));
+        movimiento.setTotalSoles(calcularTotalSolesMovimiento(compra, compraDetalle, cantidad));
         movimiento.setStockInicial(stockInicial);
         movimiento.setMovimientoCantidad(cantidad);
         movimiento.setSaldo(saldo);
@@ -443,14 +443,14 @@ public class RecepcionServiceImpl implements RecepcionService {
         return "Compra de " + descripcion + " - " + documento;
     }
 
-    private BigDecimal calcularTotalSolesMovimiento(Compra compra, CompraDetalle detalle) {
-        if (detalle == null || detalle.getCostoTotal() == null) {
+    private BigDecimal calcularTotalSolesMovimiento(Compra compra, CompraDetalle detalle, BigDecimal cantidad) {
+        if (detalle == null || detalle.getCostoKilo() == null || cantidad == null) {
             return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
         }
 
-        BigDecimal subtotalDetalle = detalle.getCostoTotal();
-        BigDecimal igvDetalle = calcularIgvDetalle(compra, subtotalDetalle);
-        return convertirASoles(compra, subtotalDetalle.add(igvDetalle));
+        BigDecimal subtotalMovimiento = cantidad.multiply(detalle.getCostoKilo());
+        BigDecimal igvMovimiento = calcularIgvDetalle(compra, subtotalMovimiento);
+        return convertirASoles(compra, subtotalMovimiento.add(igvMovimiento));
     }
 
     private BigDecimal calcularIgvDetalle(Compra compra, BigDecimal subtotalDetalle) {

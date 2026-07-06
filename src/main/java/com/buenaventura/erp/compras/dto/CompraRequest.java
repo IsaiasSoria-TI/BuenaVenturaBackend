@@ -3,7 +3,6 @@ package com.buenaventura.erp.compras.dto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
@@ -27,6 +26,14 @@ public class CompraRequest {
     @NotNull(message = "La fecha de compra es obligatoria")
     private LocalDateTime fechaCompras;
 
+    private LocalDateTime fechaEmision;
+    private LocalDateTime fechaIngresoProducto;
+    private String tipoDocumento;
+    private String numeroDocumentoProveedor;
+    private String serieReferencia;
+    private String correlativoReferencia;
+    private String observacion;
+
     @NotBlank(message = "La zona de producción es obligatoria")
     private String zonaProduccion;
 
@@ -35,7 +42,6 @@ public class CompraRequest {
     private BigDecimal numeroLote;
 
     @Valid
-    @NotEmpty(message = "Debe agregar al menos un artículo")
     private List<CompraDetalleRequest> detalles;
 
     @Valid
@@ -93,6 +99,62 @@ public class CompraRequest {
 
     public void setFechaCompras(LocalDateTime fechaCompras) {
         this.fechaCompras = fechaCompras;
+    }
+
+    public LocalDateTime getFechaEmision() {
+        return fechaEmision;
+    }
+
+    public void setFechaEmision(LocalDateTime fechaEmision) {
+        this.fechaEmision = fechaEmision;
+    }
+
+    public LocalDateTime getFechaIngresoProducto() {
+        return fechaIngresoProducto;
+    }
+
+    public void setFechaIngresoProducto(LocalDateTime fechaIngresoProducto) {
+        this.fechaIngresoProducto = fechaIngresoProducto;
+    }
+
+    public String getTipoDocumento() {
+        return tipoDocumento;
+    }
+
+    public void setTipoDocumento(String tipoDocumento) {
+        this.tipoDocumento = tipoDocumento;
+    }
+
+    public String getNumeroDocumentoProveedor() {
+        return numeroDocumentoProveedor;
+    }
+
+    public void setNumeroDocumentoProveedor(String numeroDocumentoProveedor) {
+        this.numeroDocumentoProveedor = numeroDocumentoProveedor;
+    }
+
+    public String getSerieReferencia() {
+        return serieReferencia;
+    }
+
+    public void setSerieReferencia(String serieReferencia) {
+        this.serieReferencia = serieReferencia;
+    }
+
+    public String getCorrelativoReferencia() {
+        return correlativoReferencia;
+    }
+
+    public void setCorrelativoReferencia(String correlativoReferencia) {
+        this.correlativoReferencia = correlativoReferencia;
+    }
+
+    public String getObservacion() {
+        return observacion;
+    }
+
+    public void setObservacion(String observacion) {
+        this.observacion = observacion;
     }
 
     public String getZonaProduccion() {

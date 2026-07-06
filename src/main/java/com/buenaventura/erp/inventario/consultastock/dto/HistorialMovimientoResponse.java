@@ -10,6 +10,7 @@ public class HistorialMovimientoResponse {
     private String codigoArticulo;
     private String descripcionArticulo;
     private LocalDateTime fechaMovimiento;
+    private LocalDateTime fechaTransaccion;
     private String periodo;
     private String documento;
     private String codigoMovimiento;
@@ -59,6 +60,14 @@ public class HistorialMovimientoResponse {
 
     public void setFechaMovimiento(LocalDateTime fechaMovimiento) {
         this.fechaMovimiento = fechaMovimiento;
+    }
+
+    public LocalDateTime getFechaTransaccion() {
+        return fechaTransaccion;
+    }
+
+    public void setFechaTransaccion(LocalDateTime fechaTransaccion) {
+        this.fechaTransaccion = fechaTransaccion;
     }
 
     public String getPeriodo() {

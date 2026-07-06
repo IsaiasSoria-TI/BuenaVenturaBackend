@@ -24,6 +24,13 @@ public class CompraResponse {
     private String direccion;
 
     private LocalDateTime fechaCompras;
+    private LocalDateTime fechaEmision;
+    private LocalDateTime fechaIngresoProducto;
+    private String tipoDocumento;
+    private String numeroDocumentoProveedor;
+    private String serieReferencia;
+    private String correlativoReferencia;
+    private String observacion;
     private String zonaProduccion;
     private BigDecimal numeroLote;
 
@@ -154,6 +161,62 @@ public class CompraResponse {
 
     public void setFechaCompras(LocalDateTime fechaCompras) {
         this.fechaCompras = fechaCompras;
+    }
+
+    public LocalDateTime getFechaEmision() {
+        return fechaEmision;
+    }
+
+    public void setFechaEmision(LocalDateTime fechaEmision) {
+        this.fechaEmision = fechaEmision;
+    }
+
+    public LocalDateTime getFechaIngresoProducto() {
+        return fechaIngresoProducto;
+    }
+
+    public void setFechaIngresoProducto(LocalDateTime fechaIngresoProducto) {
+        this.fechaIngresoProducto = fechaIngresoProducto;
+    }
+
+    public String getTipoDocumento() {
+        return tipoDocumento;
+    }
+
+    public void setTipoDocumento(String tipoDocumento) {
+        this.tipoDocumento = tipoDocumento;
+    }
+
+    public String getNumeroDocumentoProveedor() {
+        return numeroDocumentoProveedor;
+    }
+
+    public void setNumeroDocumentoProveedor(String numeroDocumentoProveedor) {
+        this.numeroDocumentoProveedor = numeroDocumentoProveedor;
+    }
+
+    public String getSerieReferencia() {
+        return serieReferencia;
+    }
+
+    public void setSerieReferencia(String serieReferencia) {
+        this.serieReferencia = serieReferencia;
+    }
+
+    public String getCorrelativoReferencia() {
+        return correlativoReferencia;
+    }
+
+    public void setCorrelativoReferencia(String correlativoReferencia) {
+        this.correlativoReferencia = correlativoReferencia;
+    }
+
+    public String getObservacion() {
+        return observacion;
+    }
+
+    public void setObservacion(String observacion) {
+        this.observacion = observacion;
     }
 
     public String getZonaProduccion() {
