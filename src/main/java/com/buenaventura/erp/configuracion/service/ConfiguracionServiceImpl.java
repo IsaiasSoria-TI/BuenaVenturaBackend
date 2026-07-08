@@ -10,6 +10,7 @@ import com.buenaventura.erp.rol.entity.Rol;
 import com.buenaventura.erp.rol.repository.RolRepository;
 import com.buenaventura.erp.usuario.entity.Usuario;
 import com.buenaventura.erp.usuario.repository.UsuarioRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,15 +25,18 @@ public class ConfiguracionServiceImpl implements ConfiguracionService {
     private final PersonaRepository personaRepository;
     private final RolRepository rolRepository;
     private final PasswordEncoder passwordEncoder;
+    private final boolean passwordHashingEnabled;
 
     public ConfiguracionServiceImpl(UsuarioRepository usuarioRepository,
                                     PersonaRepository personaRepository,
                                     RolRepository rolRepository,
-                                    PasswordEncoder passwordEncoder) {
+                                    PasswordEncoder passwordEncoder,
+                                    @Value("${app.security.password-hashing-enabled:true}") boolean passwordHashingEnabled) {
         this.usuarioRepository = usuarioRepository;
         this.personaRepository = personaRepository;
         this.rolRepository = rolRepository;
         this.passwordEncoder = passwordEncoder;
+        this.passwordHashingEnabled = passwordHashingEnabled;
     }
 
     @Override
@@ -109,7 +113,7 @@ public class ConfiguracionServiceImpl implements ConfiguracionService {
         usuario.setRol(rol);
         usuario.setPersona(persona);
         usuario.setUsuario(nuevoUsuario);
-        usuario.setContrasena(passwordEncoder.encode(request.getContrasena().trim()));
+        usuario.setContrasena(preparePasswordForStorage(request.getContrasena().trim()));
         usuario.setFlgActivo(true);
 
         personaRepository.save(persona);
@@ -142,7 +146,7 @@ public class ConfiguracionServiceImpl implements ConfiguracionService {
         usuarioActual.setUsuario(nuevoUsuario);
 
         if (request.getContrasena() != null && !request.getContrasena().trim().isEmpty()) {
-            usuarioActual.setContrasena(passwordEncoder.encode(request.getContrasena().trim()));
+            usuarioActual.setContrasena(preparePasswordForStorage(request.getContrasena().trim()));
         }
 
         boolean activo = request.getFlgActivo() == null || request.getFlgActivo();
@@ -223,10 +227,22 @@ public class ConfiguracionServiceImpl implements ConfiguracionService {
         }
 
         if (contrasena.startsWith("$2a$") || contrasena.startsWith("$2b$") || contrasena.startsWith("$2y$")) {
+            return "Contrasena protegida - restablecer";
+        }
+
+        if (!passwordHashingEnabled) {
             return contrasena;
         }
 
         return "Pendiente de migracion";
+    }
+
+    private String preparePasswordForStorage(String rawPassword) {
+        if (!passwordHashingEnabled) {
+            return rawPassword;
+        }
+
+        return passwordEncoder.encode(rawPassword);
     }
 
     private String formatNombreCompleto(Persona persona) {

@@ -5,6 +5,7 @@ import com.buenaventura.erp.auth.dto.LoginResponse;
 import com.buenaventura.erp.security.JwtService;
 import com.buenaventura.erp.usuario.entity.Usuario;
 import com.buenaventura.erp.usuario.repository.UsuarioRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -14,13 +15,16 @@ public class AuthServiceImpl implements AuthService {
     private final UsuarioRepository usuarioRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
+    private final boolean passwordHashingEnabled;
 
     public AuthServiceImpl(UsuarioRepository usuarioRepository,
                            PasswordEncoder passwordEncoder,
-                           JwtService jwtService) {
+                           JwtService jwtService,
+                           @Value("${app.security.password-hashing-enabled:true}") boolean passwordHashingEnabled) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.passwordHashingEnabled = passwordHashingEnabled;
     }
 
     @Override
@@ -73,7 +77,7 @@ public class AuthServiceImpl implements AuthService {
 
         boolean matchesPlainTextPassword = rawPassword.equals(storedPassword);
 
-        if (matchesPlainTextPassword) {
+        if (matchesPlainTextPassword && passwordHashingEnabled) {
             usuario.setContrasena(passwordEncoder.encode(rawPassword));
             usuarioRepository.save(usuario);
         }
