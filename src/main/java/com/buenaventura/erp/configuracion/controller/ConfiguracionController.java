@@ -22,19 +22,23 @@ public class ConfiguracionController {
         this.configuracionService = configuracionService;
     }
 
+    // Parametro obligatorio: usuarioId se envia como query string.
+    // Ejemplo: GET /api/configuracion/perfil?usuarioId=123
     @GetMapping("/perfil")
-    public ResponseEntity<PerfilResponse> obtenerPerfil(Authentication authentication) {
-        String username = authentication.getName();
-        return ResponseEntity.ok(configuracionService.obtenerPerfil(username));
+    public ResponseEntity<PerfilResponse> obtenerPerfil(
+            @RequestParam(name = "usuarioId", required = true) Integer usuarioId
+    ) {
+        return ResponseEntity.ok(configuracionService.obtenerPerfil(usuarioId));
     }
 
+    // Parametro obligatorio: usuarioId se envia como query string.
+    // Ejemplo: PUT /api/configuracion/perfil?usuarioId=123
     @PutMapping("/perfil")
     public ResponseEntity<PerfilResponse> actualizarPerfil(
-            Authentication authentication,
+            @RequestParam(name = "usuarioId", required = true) Integer usuarioId,
             @Valid @RequestBody PerfilUpdateRequest request
     ) {
-        String username = authentication.getName();
-        return ResponseEntity.ok(configuracionService.actualizarPerfil(username, request));
+        return ResponseEntity.ok(configuracionService.actualizarPerfil(usuarioId, request));
     }
 
     @GetMapping("/seguridad/usuarios")

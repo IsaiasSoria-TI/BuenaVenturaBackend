@@ -15,6 +15,9 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
     @EntityGraph(attributePaths = {"rol", "persona"})
     Optional<Usuario> findByUsuarioIgnoreCase(String usuario);
 
+    @EntityGraph(attributePaths = {"rol", "persona"})
+    Optional<Usuario> findByIdUsuarioAndFlgActivoTrue(Integer idUsuario);
+
     @EntityGraph(attributePaths = {"persona"})
     List<Usuario> findAllByFlgActivoTrueOrderByUsuarioAsc();
 

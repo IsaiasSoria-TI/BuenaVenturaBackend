@@ -41,17 +41,15 @@ public class ConfiguracionServiceImpl implements ConfiguracionService {
 
     @Override
     @Transactional(readOnly = true)
-    public PerfilResponse obtenerPerfil(String username) {
-        Usuario usuario = usuarioRepository.findByUsuarioIgnoreCaseAndFlgActivoTrue(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+    public PerfilResponse obtenerPerfil(Integer usuarioId) {
+        Usuario usuario = obtenerUsuarioActivo(usuarioId);
 
         return toPerfilResponse(usuario);
     }
 
     @Override
-    public PerfilResponse actualizarPerfil(String username, PerfilUpdateRequest request) {
-        Usuario usuarioActual = usuarioRepository.findByUsuarioIgnoreCaseAndFlgActivoTrue(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+    public PerfilResponse actualizarPerfil(Integer usuarioId, PerfilUpdateRequest request) {
+        Usuario usuarioActual = obtenerUsuarioActivo(usuarioId);
 
         String nuevoUsuario = request.getUsuario().trim();
 
@@ -77,6 +75,15 @@ public class ConfiguracionServiceImpl implements ConfiguracionService {
         usuarioRepository.save(usuarioActual);
 
         return toPerfilResponse(usuarioActual);
+    }
+
+    private Usuario obtenerUsuarioActivo(Integer usuarioId) {
+        if (usuarioId == null) {
+            throw new RuntimeException("El parametro usuarioId es obligatorio");
+        }
+
+        return usuarioRepository.findByIdUsuarioAndFlgActivoTrue(usuarioId)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
     }
 
     @Override
