@@ -1,4 +1,5 @@
-USE buenaventura;
+CREATE DATABASE IF NOT EXISTS bd_buenaventura;
+USE bd_buenaventura;
 
 -- Punto 3 y 4: facturas manuales sin compra/recepcion y moneda editable solo en manual.
 ALTER TABLE tb_cuentas_pagar
@@ -17,8 +18,8 @@ SET @articulo_tipo_envase_exists := (
 
 SET @sql := IF(
     @articulo_tipo_envase_exists = 0,
-    'ALTER TABLE tb_articulo ADD COLUMN TipoEnvase VARCHAR(50) NOT NULL DEFAULT ''Jaba'' AFTER Medida',
-    'ALTER TABLE tb_articulo MODIFY COLUMN TipoEnvase VARCHAR(50) NOT NULL DEFAULT ''Jaba'''
+    'ALTER TABLE tb_articulo ADD COLUMN TipoEnvase VARCHAR(50) NOT NULL DEFAULT ''Jabas'' AFTER Medida',
+    'ALTER TABLE tb_articulo MODIFY COLUMN TipoEnvase VARCHAR(50) NOT NULL DEFAULT ''Jabas'''
 );
 
 PREPARE stmt FROM @sql;
@@ -68,6 +69,42 @@ SET @sql := IF(
         'ALTER TABLE tb_recepciones ADD COLUMN CantidadEnvase INT NOT NULL DEFAULT 0 AFTER TipoEnvase',
         'ALTER TABLE tb_recepciones MODIFY COLUMN CantidadEnvase INT NOT NULL DEFAULT 0'
     )
+);
+
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @cantidad_jabas_exists := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'tb_recepciones'
+      AND COLUMN_NAME = 'CantidadJabas'
+);
+
+SET @cantidad_envase_exists := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'tb_recepciones'
+      AND COLUMN_NAME = 'CantidadEnvase'
+);
+
+SET @sql := IF(
+    @cantidad_envase_exists > 0 AND @cantidad_jabas_exists > 0,
+    'UPDATE tb_recepciones SET CantidadEnvase = ROUND(CantidadJabas) WHERE CantidadEnvase = 0 AND CantidadJabas IS NOT NULL AND CantidadJabas > 0',
+    'SELECT ''No hay datos de CantidadJabas para migrar'' AS mensaje'
+);
+
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+    @cantidad_jabas_exists > 0,
+    'ALTER TABLE tb_recepciones DROP COLUMN CantidadJabas',
+    'SELECT ''tb_recepciones.CantidadJabas ya no existe'' AS mensaje'
 );
 
 PREPARE stmt FROM @sql;
