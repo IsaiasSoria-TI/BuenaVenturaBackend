@@ -69,8 +69,8 @@ public class ConfiguracionServiceImpl implements ConfiguracionService {
         persona.setNombres(request.getNombres().trim());
         persona.setApellidoPaterno(request.getApellidoPaterno().trim());
         persona.setApellidoMaterno(request.getApellidoMaterno() != null ? request.getApellidoMaterno().trim() : "");
-        persona.setTelefono(request.getTelefono() != null ? request.getTelefono().trim() : null);
-        persona.setCorreo(request.getCorreo() != null ? request.getCorreo().trim() : null);
+        persona.setTelefono(cleanNullableOptional(request.getTelefono()));
+        persona.setCorreo(cleanNullableOptional(request.getCorreo()));
 
         usuarioActual.setUsuario(nuevoUsuario);
         personaRepository.save(persona);
@@ -279,9 +279,9 @@ public class ConfiguracionServiceImpl implements ConfiguracionService {
         persona.setNombres(cleanRequired(request.getNombres()));
         persona.setApellidoPaterno(cleanRequired(request.getApellidoPaterno()));
         persona.setApellidoMaterno(cleanOptional(request.getApellidoMaterno()));
-        persona.setTelefono(cleanOptional(request.getTelefono()));
-        persona.setDni(cleanOptional(request.getDni()));
-        persona.setCorreo(cleanOptional(request.getCorreo()));
+        persona.setTelefono(cleanNullableOptional(request.getTelefono()));
+        persona.setDni(cleanNullableOptional(request.getDni()));
+        persona.setCorreo(cleanNullableOptional(request.getCorreo()));
     }
 
     private String cleanRequired(String value) {
@@ -294,5 +294,13 @@ public class ConfiguracionServiceImpl implements ConfiguracionService {
 
     private String cleanOptional(String value) {
         return value != null ? value.trim() : "";
+    }
+
+    private String cleanNullableOptional(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+
+        return value.trim();
     }
 }

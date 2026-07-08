@@ -2,6 +2,7 @@ package com.buenaventura.erp.common.exception;
 
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -52,6 +53,14 @@ public class GlobalExceptionHandler {
                 .orElse("Datos invalidos");
 
         return errorResponse(HttpStatus.BAD_REQUEST, message);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrity(DataIntegrityViolationException ex) {
+        return errorResponse(
+                HttpStatus.BAD_REQUEST,
+                "No se pudo guardar el registro porque hay datos duplicados o invalidos. Revisa DNI y telefono."
+        );
     }
 
     @ExceptionHandler(DataAccessException.class)
