@@ -82,9 +82,9 @@ public class ConfiguracionServiceImpl implements ConfiguracionService {
     @Override
     @Transactional(readOnly = true)
     public List<SeguridadUsuarioResponse> listarUsuariosSeguridad() {
-        return usuarioRepository.findAllByFlgActivoTrueOrderByUsuarioAsc()
+        return usuarioRepository.findAllByOrderByUsuarioAsc()
                 .stream()
-                .filter(usuario -> usuario.getPersona() != null && Boolean.TRUE.equals(usuario.getPersona().getFlgActivo()))
+                .filter(usuario -> usuario.getPersona() != null)
                 .map(this::toSeguridadUsuarioResponse)
                 .toList();
     }
