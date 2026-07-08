@@ -9,9 +9,9 @@ import java.util.List;
 
 public interface ConfiguracionService {
 
-    PerfilResponse obtenerPerfil(Integer usuarioId);
+    PerfilResponse obtenerPerfil(Integer usuarioId, String username);
 
-    PerfilResponse actualizarPerfil(Integer usuarioId, PerfilUpdateRequest request);
+    PerfilResponse actualizarPerfil(Integer usuarioId, String username, PerfilUpdateRequest request);
 
     List<SeguridadUsuarioResponse> listarUsuariosSeguridad();
 

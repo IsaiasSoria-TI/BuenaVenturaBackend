@@ -43,15 +43,15 @@ public class ConfiguracionServiceImpl implements ConfiguracionService {
 
     @Override
     @Transactional(readOnly = true)
-    public PerfilResponse obtenerPerfil(Integer usuarioId) {
-        Usuario usuario = obtenerUsuarioActivo(usuarioId);
+    public PerfilResponse obtenerPerfil(Integer usuarioId, String username) {
+        Usuario usuario = obtenerUsuarioActivo(usuarioId, username);
 
         return toPerfilResponse(usuario);
     }
 
     @Override
-    public PerfilResponse actualizarPerfil(Integer usuarioId, PerfilUpdateRequest request) {
-        Usuario usuarioActual = obtenerUsuarioActivo(usuarioId);
+    public PerfilResponse actualizarPerfil(Integer usuarioId, String username, PerfilUpdateRequest request) {
+        Usuario usuarioActual = obtenerUsuarioActivo(usuarioId, username);
 
         String nuevoUsuario = request.getUsuario().trim();
 
@@ -79,13 +79,18 @@ public class ConfiguracionServiceImpl implements ConfiguracionService {
         return toPerfilResponse(usuarioActual);
     }
 
-    private Usuario obtenerUsuarioActivo(Integer usuarioId) {
-        if (usuarioId == null) {
-            throw new BadRequestException("El parametro usuarioId es obligatorio");
+    private Usuario obtenerUsuarioActivo(Integer usuarioId, String username) {
+        if (usuarioId != null) {
+            return usuarioRepository.findByIdUsuarioAndFlgActivoTrue(usuarioId)
+                    .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
         }
 
-        return usuarioRepository.findByIdUsuarioAndFlgActivoTrue(usuarioId)
-                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+        if (username != null && !username.isBlank()) {
+            return usuarioRepository.findByUsuarioIgnoreCaseAndFlgActivoTrue(username.trim())
+                    .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+        }
+
+        throw new BadRequestException("El parametro usuarioId es obligatorio");
     }
 
     @Override
