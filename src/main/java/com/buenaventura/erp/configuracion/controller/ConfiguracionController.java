@@ -6,14 +6,17 @@ import com.buenaventura.erp.configuracion.dto.SeguridadUsuarioRequest;
 import com.buenaventura.erp.configuracion.dto.SeguridadUsuarioResponse;
 import com.buenaventura.erp.configuracion.service.ConfiguracionService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/configuracion")
+@Validated
 public class ConfiguracionController {
 
     private final ConfiguracionService configuracionService;
@@ -26,7 +29,9 @@ public class ConfiguracionController {
     // Ejemplo: GET /api/configuracion/perfil?usuarioId=123
     @GetMapping("/perfil")
     public ResponseEntity<PerfilResponse> obtenerPerfil(
-            @RequestParam(name = "usuarioId", required = true) Integer usuarioId
+            @RequestParam(name = "usuarioId", required = true)
+            @Positive(message = "El parametro usuarioId debe ser mayor a 0")
+            Integer usuarioId
     ) {
         return ResponseEntity.ok(configuracionService.obtenerPerfil(usuarioId));
     }
@@ -35,7 +40,9 @@ public class ConfiguracionController {
     // Ejemplo: PUT /api/configuracion/perfil?usuarioId=123
     @PutMapping("/perfil")
     public ResponseEntity<PerfilResponse> actualizarPerfil(
-            @RequestParam(name = "usuarioId", required = true) Integer usuarioId,
+            @RequestParam(name = "usuarioId", required = true)
+            @Positive(message = "El parametro usuarioId debe ser mayor a 0")
+            Integer usuarioId,
             @Valid @RequestBody PerfilUpdateRequest request
     ) {
         return ResponseEntity.ok(configuracionService.actualizarPerfil(usuarioId, request));
@@ -59,7 +66,7 @@ public class ConfiguracionController {
             @PathVariable Integer idUsuario,
             @Valid @RequestBody SeguridadUsuarioRequest request
     ) {
-        return ResponseEntity.ok(configuracionService.actualizarUsuarioSeguridad(idUsuario, request, authentication.getName()));
+        return ResponseEntity.ok(configuracionService.actualizarUsuarioSeguridad(idUsuario, request, getCurrentUsername(authentication)));
     }
 
     @DeleteMapping("/seguridad/usuarios/{idUsuario}")
@@ -67,7 +74,11 @@ public class ConfiguracionController {
             Authentication authentication,
             @PathVariable Integer idUsuario
     ) {
-        configuracionService.inactivarUsuarioSeguridad(idUsuario, authentication.getName());
+        configuracionService.inactivarUsuarioSeguridad(idUsuario, getCurrentUsername(authentication));
         return ResponseEntity.noContent().build();
+    }
+
+    private String getCurrentUsername(Authentication authentication) {
+        return authentication != null ? authentication.getName() : null;
     }
 }

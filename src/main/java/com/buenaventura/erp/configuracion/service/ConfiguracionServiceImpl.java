@@ -1,5 +1,7 @@
 package com.buenaventura.erp.configuracion.service;
 
+import com.buenaventura.erp.common.exception.BadRequestException;
+import com.buenaventura.erp.common.exception.NotFoundException;
 import com.buenaventura.erp.configuracion.dto.PerfilResponse;
 import com.buenaventura.erp.configuracion.dto.PerfilUpdateRequest;
 import com.buenaventura.erp.configuracion.dto.SeguridadUsuarioRequest;
@@ -79,11 +81,11 @@ public class ConfiguracionServiceImpl implements ConfiguracionService {
 
     private Usuario obtenerUsuarioActivo(Integer usuarioId) {
         if (usuarioId == null) {
-            throw new RuntimeException("El parametro usuarioId es obligatorio");
+            throw new BadRequestException("El parametro usuarioId es obligatorio");
         }
 
         return usuarioRepository.findByIdUsuarioAndFlgActivoTrue(usuarioId)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
     }
 
     @Override
@@ -193,6 +195,10 @@ public class ConfiguracionServiceImpl implements ConfiguracionService {
     private PerfilResponse toPerfilResponse(Usuario usuario) {
         Persona persona = usuario.getPersona();
 
+        if (persona == null) {
+            throw new NotFoundException("El usuario no tiene persona asociada");
+        }
+
         PerfilResponse response = new PerfilResponse();
         response.setIdUsuario(usuario.getIdUsuario());
         response.setIdPersona(persona.getIdPersona());
@@ -203,7 +209,7 @@ public class ConfiguracionServiceImpl implements ConfiguracionService {
         response.setTelefono(persona.getTelefono());
         response.setDni(persona.getDni());
         response.setCorreo(persona.getCorreo());
-        response.setNombreCompleto(persona.getNombreCompleto());
+        response.setNombreCompleto(formatNombreCompleto(persona));
 
         return response;
     }
