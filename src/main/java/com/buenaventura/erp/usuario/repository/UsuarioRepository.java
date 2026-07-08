@@ -17,4 +17,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
 
     @EntityGraph(attributePaths = {"persona"})
     List<Usuario> findAllByFlgActivoTrueOrderByUsuarioAsc();
+
+    @EntityGraph(attributePaths = {"persona"})
+    List<Usuario> findAllByOrderByUsuarioAsc();
 }
