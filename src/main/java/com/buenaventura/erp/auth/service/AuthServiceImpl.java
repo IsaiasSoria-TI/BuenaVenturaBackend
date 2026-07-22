@@ -2,6 +2,7 @@ package com.buenaventura.erp.auth.service;
 
 import com.buenaventura.erp.auth.dto.LoginRequest;
 import com.buenaventura.erp.auth.dto.LoginResponse;
+import com.buenaventura.erp.common.exception.UnauthorizedException;
 import com.buenaventura.erp.security.JwtService;
 import com.buenaventura.erp.usuario.entity.Usuario;
 import com.buenaventura.erp.usuario.repository.UsuarioRepository;
@@ -30,21 +31,21 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public LoginResponse login(LoginRequest request) {
         String username = request.getUsuario().trim();
-        String password = request.getContrasena().trim();
+        String password = request.getContrasena();
 
         Usuario usuario = usuarioRepository.findByUsuarioIgnoreCaseAndFlgActivoTrue(username)
-                .orElseThrow(() -> new RuntimeException("Credenciales invalidas"));
+                .orElseThrow(() -> new UnauthorizedException("Credenciales invalidas"));
 
         if (usuario.getRol() == null || usuario.getRol().getFlgActivo() == null || !usuario.getRol().getFlgActivo()) {
-            throw new RuntimeException("Usuario no autorizado");
+            throw new UnauthorizedException("Usuario no autorizado");
         }
 
         if (usuario.getPersona() == null || usuario.getPersona().getFlgActivo() == null || !usuario.getPersona().getFlgActivo()) {
-            throw new RuntimeException("Usuario no autorizado");
+            throw new UnauthorizedException("Usuario no autorizado");
         }
 
         if (!isPasswordValid(password, usuario)) {
-            throw new RuntimeException("Credenciales invalidas");
+            throw new UnauthorizedException("Credenciales invalidas");
         }
 
         String token = jwtService.generateToken(

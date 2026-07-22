@@ -3,6 +3,7 @@ package com.buenaventura.erp.categoria.controller;
 import com.buenaventura.erp.categoria.dto.CategoriaRequest;
 import com.buenaventura.erp.categoria.dto.CategoriaResponse;
 import com.buenaventura.erp.categoria.service.CategoriaService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,13 +24,13 @@ public class CategoriaController {
     }
 
     @PostMapping
-    public CategoriaResponse crear(@RequestBody CategoriaRequest request) {
+    public CategoriaResponse crear(@Valid @RequestBody CategoriaRequest request) {
         return service.crear(request);
     }
 
     @PutMapping("/{id}")
     public CategoriaResponse actualizar(@PathVariable Integer id,
-                                        @RequestBody CategoriaRequest request) {
+                                        @Valid @RequestBody CategoriaRequest request) {
         return service.actualizar(id, request);
     }
 

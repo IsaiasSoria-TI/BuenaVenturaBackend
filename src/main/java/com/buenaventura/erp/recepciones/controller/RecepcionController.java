@@ -33,7 +33,7 @@ public class RecepcionController {
     @PutMapping("/{id}/datos")
     public RecepcionResponse actualizarDatos(
             @PathVariable Integer id,
-            @RequestBody RecepcionDatosRequest request
+            @Valid @RequestBody RecepcionDatosRequest request
     ) {
         return recepcionService.actualizarDatos(id, request);
     }

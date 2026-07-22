@@ -8,7 +8,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/tipos-proveedor")
-@CrossOrigin(origins = "*")
 public class TipoProveedorController {
 
     private final TipoProveedorService tipoProveedorService;

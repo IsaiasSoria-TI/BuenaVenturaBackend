@@ -3,6 +3,7 @@ package com.buenaventura.erp.cuentacontable.controller;
 import com.buenaventura.erp.cuentacontable.dto.CuentaContableRequest;
 import com.buenaventura.erp.cuentacontable.dto.CuentaContableResponse;
 import com.buenaventura.erp.cuentacontable.service.CuentaContableService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,14 +24,14 @@ public class CuentaContableController {
     }
 
     @PostMapping
-    public CuentaContableResponse crear(@RequestBody CuentaContableRequest request) {
+    public CuentaContableResponse crear(@Valid @RequestBody CuentaContableRequest request) {
         return service.crear(request);
     }
 
     @PutMapping("/{id}")
     public CuentaContableResponse actualizar(
             @PathVariable Integer id,
-            @RequestBody CuentaContableRequest request
+            @Valid @RequestBody CuentaContableRequest request
     ) {
         return service.actualizar(id, request);
     }

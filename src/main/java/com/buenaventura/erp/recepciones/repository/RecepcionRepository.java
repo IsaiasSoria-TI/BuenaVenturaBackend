@@ -16,6 +16,8 @@ public interface RecepcionRepository extends JpaRepository<Recepcion, Integer> {
     @EntityGraph(attributePaths = {"compra", "compra.proveedor"})
     List<Recepcion> findByCompra_IdComprasOrderByFechaRecepcionAsc(Integer idCompras);
 
+    List<Recepcion> findByIdRecepcionesIn(List<Integer> idsRecepciones);
+
     @EntityGraph(attributePaths = {"compra", "compra.proveedor"})
     @Query("""
             SELECT r

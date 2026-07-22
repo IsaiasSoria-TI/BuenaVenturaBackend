@@ -16,4 +16,14 @@ public interface CuentaPagarDetalleRepository extends JpaRepository<CuentaPagarD
     List<CuentaPagarDetalle> findByCuentaPagar_IdCuentaPagarAndFlgActivoTrueOrderByIdCuentaPagarDetalleAsc(
             Integer idCuentaPagar
     );
+
+    @EntityGraph(attributePaths = {
+            "cuentaPagar",
+            "recepcionDetalle",
+            "recepcionDetalle.compraDetalle",
+            "recepcionDetalle.compraDetalle.articulo"
+    })
+    List<CuentaPagarDetalle> findByCuentaPagar_IdCuentaPagarInAndFlgActivoTrueOrderByIdCuentaPagarDetalleAsc(
+            List<Integer> idsCuentaPagar
+    );
 }

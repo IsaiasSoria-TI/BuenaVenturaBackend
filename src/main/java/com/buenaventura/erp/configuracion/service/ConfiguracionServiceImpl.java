@@ -112,7 +112,7 @@ public class ConfiguracionServiceImpl implements ConfiguracionService {
                     throw new RuntimeException("El nombre de usuario ya esta en uso");
                 });
 
-        if (request.getContrasena() == null || request.getContrasena().trim().isEmpty()) {
+        if (request.getContrasena() == null || request.getContrasena().isBlank()) {
             throw new RuntimeException("La contrasena es obligatoria");
         }
 
@@ -127,7 +127,7 @@ public class ConfiguracionServiceImpl implements ConfiguracionService {
         usuario.setRol(rol);
         usuario.setPersona(persona);
         usuario.setUsuario(nuevoUsuario);
-        usuario.setContrasena(preparePasswordForStorage(request.getContrasena().trim()));
+        usuario.setContrasena(preparePasswordForStorage(request.getContrasena()));
         usuario.setFlgActivo(true);
 
         personaRepository.save(persona);
@@ -159,8 +159,8 @@ public class ConfiguracionServiceImpl implements ConfiguracionService {
         applyPersonaData(persona, request);
         usuarioActual.setUsuario(nuevoUsuario);
 
-        if (request.getContrasena() != null && !request.getContrasena().trim().isEmpty()) {
-            usuarioActual.setContrasena(preparePasswordForStorage(request.getContrasena().trim()));
+        if (request.getContrasena() != null && !request.getContrasena().isBlank()) {
+            usuarioActual.setContrasena(preparePasswordForStorage(request.getContrasena()));
         }
 
         boolean activo = request.getFlgActivo() == null || request.getFlgActivo();
@@ -240,19 +240,7 @@ public class ConfiguracionServiceImpl implements ConfiguracionService {
     }
 
     private String getContrasenaSegura(String contrasena) {
-        if (contrasena == null || contrasena.isBlank()) {
-            return "";
-        }
-
-        if (contrasena.startsWith("$2a$") || contrasena.startsWith("$2b$") || contrasena.startsWith("$2y$")) {
-            return "Contrasena protegida - restablecer";
-        }
-
-        if (!passwordHashingEnabled) {
-            return contrasena;
-        }
-
-        return "Pendiente de migracion";
+        return contrasena == null || contrasena.isBlank() ? "" : "Protegida";
     }
 
     private String preparePasswordForStorage(String rawPassword) {

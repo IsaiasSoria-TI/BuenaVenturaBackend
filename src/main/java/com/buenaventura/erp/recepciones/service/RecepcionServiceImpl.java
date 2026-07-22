@@ -189,7 +189,7 @@ public class RecepcionServiceImpl implements RecepcionService {
     @Transactional
     public RecepcionResponse actualizarDatos(Integer id, RecepcionDatosRequest request) {
         Recepcion recepcion = recepcionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("La recepciÃ³n no existe"));
+                .orElseThrow(() -> new RuntimeException("La recepcion no existe"));
 
         if (request.getCantidadEnvase() != null && request.getCantidadEnvase() < 0) {
             throw new RuntimeException("La cantidad de envase no puede ser negativa");

@@ -12,6 +12,9 @@ public interface CompraRepository extends JpaRepository<Compra, Integer> {
     @EntityGraph(attributePaths = {"impuesto", "pago", "proveedor", "articulo", "moneda", "tipoCambio"})
     List<Compra> findByFlgActivoTrueOrderByFechaComprasDesc();
 
+    @EntityGraph(attributePaths = {"proveedor", "articulo", "moneda"})
+    List<Compra> findByIdComprasIn(List<Integer> idsCompras);
+
     @Query("""
             select compra
             from Compra compra

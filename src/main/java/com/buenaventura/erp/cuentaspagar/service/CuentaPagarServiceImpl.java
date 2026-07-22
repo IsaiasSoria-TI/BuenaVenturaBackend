@@ -26,6 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -62,9 +65,57 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
     @Override
     @Transactional(readOnly = true)
     public List<CuentaPagarResponse> listar() {
-        return cuentaPagarRepository.findByFlgActivoTrueOrderByFechaCreacionDesc()
+        List<CuentaPagar> cuentas = cuentaPagarRepository.findByFlgActivoTrueOrderByFechaCreacionDesc();
+        if (cuentas.isEmpty()) {
+            return List.of();
+        }
+
+        List<Integer> idsCompras = cuentas.stream()
+                .map(CuentaPagar::getIdCompras)
+                .filter(id -> id != null)
+                .distinct()
+                .toList();
+        List<Integer> idsRecepciones = cuentas.stream()
+                .map(CuentaPagar::getIdRecepciones)
+                .filter(id -> id != null)
+                .distinct()
+                .toList();
+        List<Integer> idsCuentas = cuentas.stream()
+                .map(CuentaPagar::getIdCuentaPagar)
+                .toList();
+
+        Map<Integer, Compra> comprasPorId = idsCompras.isEmpty()
+                ? Map.of()
+                : compraRepository.findByIdComprasIn(idsCompras)
+                        .stream()
+                        .collect(Collectors.toMap(Compra::getIdCompras, Function.identity()));
+        Map<Integer, Recepcion> recepcionesPorId = idsRecepciones.isEmpty()
+                ? Map.of()
+                : recepcionRepository.findByIdRecepcionesIn(idsRecepciones)
+                        .stream()
+                        .collect(Collectors.toMap(Recepcion::getIdRecepciones, Function.identity()));
+        Map<Integer, List<CuentaPagarDetalle>> detallesPorCuenta = cuentaPagarDetalleRepository
+                .findByCuentaPagar_IdCuentaPagarInAndFlgActivoTrueOrderByIdCuentaPagarDetalleAsc(idsCuentas)
                 .stream()
-                .map(this::toResponse)
+                .collect(Collectors.groupingBy(detalle -> detalle.getCuentaPagar().getIdCuentaPagar()));
+        Map<Integer, BigDecimal> costosPorCompra = idsCompras.isEmpty()
+                ? Map.of()
+                : compraDetalleRepository.findActivosByCompraIds(idsCompras)
+                        .stream()
+                        .collect(Collectors.groupingBy(
+                                detalle -> detalle.getCompra().getIdCompras(),
+                                Collectors.reducing(BigDecimal.ZERO, CompraDetalle::getCostoTotal, BigDecimal::add)
+                        ));
+
+        return cuentas
+                .stream()
+                .map(cuenta -> toResponse(
+                        cuenta,
+                        comprasPorId.get(cuenta.getIdCompras()),
+                        recepcionesPorId.get(cuenta.getIdRecepciones()),
+                        detallesPorCuenta.getOrDefault(cuenta.getIdCuentaPagar(), List.of()),
+                        costosPorCompra.get(cuenta.getIdCompras())
+                ))
                 .toList();
     }
 
@@ -447,6 +498,20 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
     }
 
     private CuentaPagarResponse toResponse(CuentaPagar cuentaPagar, Compra compra, Recepcion recepcion) {
+        List<CuentaPagarDetalle> detalles = cuentaPagarDetalleRepository
+                .findByCuentaPagar_IdCuentaPagarAndFlgActivoTrueOrderByIdCuentaPagarDetalleAsc(
+                        cuentaPagar.getIdCuentaPagar()
+                );
+        return toResponse(cuentaPagar, compra, recepcion, detalles, null);
+    }
+
+    private CuentaPagarResponse toResponse(
+            CuentaPagar cuentaPagar,
+            Compra compra,
+            Recepcion recepcion,
+            List<CuentaPagarDetalle> detallesCuenta,
+            BigDecimal costoTotalCompra
+    ) {
         CuentaPagarResponse response = new CuentaPagarResponse();
 
         response.setIdCuentaPagar(cuentaPagar.getIdCuentaPagar());
@@ -464,7 +529,11 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
         if (compra != null) {
             response.setProveedor(compra.getProveedor().getRazonSocial());
             response.setRuc(compra.getProveedor().getRuc());
-            response.setImporteCompra(calcularCostoTotalCompra(compra.getIdCompras()));
+            response.setImporteCompra(
+                    costoTotalCompra != null
+                            ? costoTotalCompra
+                            : calcularCostoTotalCompra(compra.getIdCompras())
+            );
             completarMoneda(response, compra);
 
             if (compra.getArticulo() != null) {
@@ -478,10 +547,7 @@ public class CuentaPagarServiceImpl implements CuentaPagarService {
             response.setEstadoRecepcion(recepcion.getEstado());
         }
 
-        List<CuentaPagarDetalleResponse> detalles = cuentaPagarDetalleRepository
-                .findByCuentaPagar_IdCuentaPagarAndFlgActivoTrueOrderByIdCuentaPagarDetalleAsc(
-                        cuentaPagar.getIdCuentaPagar()
-                )
+        List<CuentaPagarDetalleResponse> detalles = detallesCuenta
                 .stream()
                 .map(this::toDetalleResponse)
                 .toList();
