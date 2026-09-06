@@ -14,8 +14,8 @@ public class ArticuloRequest {
     @NotBlank(message = "La medida es obligatoria")
     private String medida;
 
-    @NotBlank(message = "El tipo de envase es obligatorio")
-    private String tipoEnvase;
+    @NotNull(message = "El tipo de envase es obligatorio")
+    private Integer idTipoEnvase;
 
     @DecimalMin(value = "0.00", message = "El stock no puede ser negativo")
     private BigDecimal stock;
@@ -44,12 +44,12 @@ public class ArticuloRequest {
         this.medida = medida;
     }
 
-    public String getTipoEnvase() {
-        return tipoEnvase;
+    public Integer getIdTipoEnvase() {
+        return idTipoEnvase;
     }
 
-    public void setTipoEnvase(String tipoEnvase) {
-        this.tipoEnvase = tipoEnvase;
+    public void setIdTipoEnvase(Integer idTipoEnvase) {
+        this.idTipoEnvase = idTipoEnvase;
     }
 
     public BigDecimal getStock() {

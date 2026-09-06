@@ -7,6 +7,7 @@ public class ArticuloResponse {
     private Integer idArticulo;
     private String descripcion;
     private String medida;
+    private Integer idTipoEnvase;
     private String tipoEnvase;
     private BigDecimal stock;
     private Integer idCategoria;
@@ -38,6 +39,14 @@ public class ArticuloResponse {
 
     public void setMedida(String medida) {
         this.medida = medida;
+    }
+
+    public Integer getIdTipoEnvase() {
+        return idTipoEnvase;
+    }
+
+    public void setIdTipoEnvase(Integer idTipoEnvase) {
+        this.idTipoEnvase = idTipoEnvase;
     }
 
     public String getTipoEnvase() {

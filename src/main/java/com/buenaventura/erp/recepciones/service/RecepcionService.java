@@ -18,4 +18,6 @@ public interface RecepcionService {
     List<RecepcionResponse> listarComprasPendientes();
 
     RecepcionDetalleResponse verDetalleCompra(Integer idCompras);
+
+    void eliminarLogico(Integer id);
 }

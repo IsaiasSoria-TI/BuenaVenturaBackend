@@ -47,4 +47,9 @@ public class RecepcionController {
     public RecepcionDetalleResponse verDetalleCompra(@PathVariable Integer idCompras) {
         return recepcionService.verDetalleCompra(idCompras);
     }
+
+    @DeleteMapping("/{id}")
+    public void eliminar(@PathVariable Integer id) {
+        recepcionService.eliminarLogico(id);
+    }
 }

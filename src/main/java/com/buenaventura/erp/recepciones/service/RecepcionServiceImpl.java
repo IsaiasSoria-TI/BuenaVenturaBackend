@@ -2,6 +2,7 @@ package com.buenaventura.erp.recepciones.service;
 
 import com.buenaventura.erp.articulo.entity.Articulo;
 import com.buenaventura.erp.articulo.repository.ArticuloRepository;
+import com.buenaventura.erp.common.exception.NotFoundException;
 import com.buenaventura.erp.compras.entity.Compra;
 import com.buenaventura.erp.compras.entity.CompraDetalle;
 import com.buenaventura.erp.compras.repository.CompraDetalleRepository;
@@ -65,8 +66,9 @@ public class RecepcionServiceImpl implements RecepcionService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<RecepcionResponse> listar() {
-        return recepcionRepository.findAllByOrderByFechaRecepcionDesc()
+        return recepcionRepository.findByFlgActivoTrueOrderByFechaRecepcionDesc()
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -135,6 +137,7 @@ public class RecepcionServiceImpl implements RecepcionService {
         recepcion.setTipoEnvase(resolverTipoEnvaseRecepcion(request.getTipoEnvase(), tiposEnvaseRecepcion));
         recepcion.setCantidadEnvase(normalizarCantidadEnvase(request.getCantidadEnvase()));
         recepcion.setEstado(ESTADO_COMPLETA_PARCIAL);
+        recepcion.setFlgActivo(true);
 
         Recepcion guardada = recepcionRepository.save(recepcion);
 
@@ -173,7 +176,7 @@ public class RecepcionServiceImpl implements RecepcionService {
 
         if (ESTADO_COMPLETA.equalsIgnoreCase(nuevoEstadoCompra)) {
             List<Recepcion> recepcionesCompra =
-                    recepcionRepository.findByCompra_IdComprasOrderByFechaRecepcionAsc(compra.getIdCompras());
+                    recepcionRepository.findByCompra_IdComprasAndFlgActivoTrueOrderByFechaRecepcionAsc(compra.getIdCompras());
 
             for (Recepcion item : recepcionesCompra) {
                 item.setEstado(ESTADO_COMPLETA);
@@ -203,6 +206,69 @@ public class RecepcionServiceImpl implements RecepcionService {
     }
 
     @Override
+    @Transactional
+    public void eliminarLogico(Integer id) {
+        Recepcion recepcion = recepcionRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("La recepcion no existe"));
+
+        if (Boolean.FALSE.equals(recepcion.getFlgActivo())) {
+            throw new RuntimeException("La recepción ya se encuentra inactiva");
+        }
+
+        List<RecepcionDetalle> detallesActivos = recepcionDetalleRepository
+                .findByRecepcion_IdRecepcionesAndFlgActivoTrueOrderByIdRecepcionDetalleAsc(id);
+
+        LocalDateTime ahora = LocalDateTime.now();
+
+        for (RecepcionDetalle detalle : detallesActivos) {
+            revertirEntradaStock(detalle);
+            detalle.setFlgActivo(false);
+            detalle.setFechaActualizacion(ahora);
+            recepcionDetalleRepository.save(detalle);
+        }
+
+        List<ConsultaStockMovimiento> movimientos = consultaStockMovimientoRepository
+                .findByReferenciaTipoAndReferenciaIdAndFlgActivoTrue(REFERENCIA_RECEPCION, Long.valueOf(id));
+
+        for (ConsultaStockMovimiento movimiento : movimientos) {
+            movimiento.setFlgActivo(false);
+            movimiento.setFechaActualizacion(ahora);
+        }
+        consultaStockMovimientoRepository.saveAll(movimientos);
+
+        recepcion.setFlgActivo(false);
+        recepcion.setFechaActualizacion(ahora);
+        recepcionRepository.save(recepcion);
+
+        Compra compra = recepcion.getCompra();
+        if (compra != null) {
+            String nuevoEstadoCompra = calcularEstadoCompra(compra.getIdCompras());
+            compra.setEstado(nuevoEstadoCompra);
+            compra.setFechaActualizacion(ahora);
+            compraRepository.save(compra);
+        }
+    }
+
+    private void revertirEntradaStock(RecepcionDetalle detalle) {
+        if (detalle == null || detalle.getCompraDetalle() == null) {
+            return;
+        }
+
+        Articulo articulo = detalle.getCompraDetalle().getArticulo();
+        if (articulo == null) {
+            return;
+        }
+
+        BigDecimal stockActual = articulo.getStock() == null ? BigDecimal.ZERO : articulo.getStock();
+        BigDecimal cantidad = detalle.getRecibido() == null ? BigDecimal.ZERO : detalle.getRecibido();
+        BigDecimal saldo = stockActual.subtract(cantidad).max(BigDecimal.ZERO);
+
+        articulo.setStock(saldo);
+        articuloRepository.save(articulo);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<RecepcionResponse> listarComprasPendientes() {
         return compraRepository.findByFlgActivoTrueOrderByFechaComprasDesc()
                 .stream()
@@ -212,6 +278,7 @@ public class RecepcionServiceImpl implements RecepcionService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public RecepcionDetalleResponse verDetalleCompra(Integer idCompras) {
         Compra compra = compraRepository.findById(idCompras)
                 .orElseThrow(() -> new RuntimeException("La compra no existe"));
@@ -298,7 +365,7 @@ public class RecepcionServiceImpl implements RecepcionService {
             response.setIdCategoria(compraDetalle.getArticulo().getCategoria().getIdCategoria());
             response.setDescripcionCategoria(compraDetalle.getArticulo().getCategoria().getDescripcion());
         }
-        response.setTipoEnvase(compraDetalle.getArticulo().getTipoEnvase());
+        response.setTipoEnvase(nombreTipoEnvase(compraDetalle.getArticulo()));
         response.setMedida(compraDetalle.getArticulo().getMedida());
         response.setPesoComprado(compraDetalle.getPeso());
         response.setTotalRecibido(totalRecibido);
@@ -329,7 +396,7 @@ public class RecepcionServiceImpl implements RecepcionService {
                         response.setIdCategoria(detalle.getCompraDetalle().getArticulo().getCategoria().getIdCategoria());
                         response.setDescripcionCategoria(detalle.getCompraDetalle().getArticulo().getCategoria().getDescripcion());
                     }
-                    response.setTipoEnvase(detalle.getCompraDetalle().getArticulo().getTipoEnvase());
+                    response.setTipoEnvase(nombreTipoEnvase(detalle.getCompraDetalle().getArticulo()));
                     response.setMedida(detalle.getCompraDetalle().getArticulo().getMedida());
                     response.setPesoComprado(detalle.getCompraDetalle().getPeso());
                     response.setRecibido(detalle.getRecibido());
@@ -513,10 +580,16 @@ public class RecepcionServiceImpl implements RecepcionService {
             return;
         }
 
-        String tipoEnvase = compraDetalle.getArticulo().getTipoEnvase();
+        String tipoEnvase = nombreTipoEnvase(compraDetalle.getArticulo());
         if (tipoEnvase != null && !tipoEnvase.isBlank()) {
             tiposEnvase.add(tipoEnvase.trim());
         }
+    }
+
+    private String nombreTipoEnvase(Articulo articulo) {
+        return articulo != null && articulo.getTipoEnvase() != null
+                ? articulo.getTipoEnvase().getNombre()
+                : null;
     }
 
     private String obtenerTipoEnvaseRecepcion(Recepcion recepcion) {

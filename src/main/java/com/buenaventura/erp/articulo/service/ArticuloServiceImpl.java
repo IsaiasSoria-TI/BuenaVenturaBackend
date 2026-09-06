@@ -6,7 +6,10 @@ import com.buenaventura.erp.articulo.entity.Articulo;
 import com.buenaventura.erp.articulo.repository.ArticuloRepository;
 import com.buenaventura.erp.categoria.entity.Categoria;
 import com.buenaventura.erp.categoria.repository.CategoriaRepository;
+import com.buenaventura.erp.inventario.tipoenvase.entity.TipoEnvase;
+import com.buenaventura.erp.inventario.tipoenvase.repository.TipoEnvaseRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -16,14 +19,18 @@ public class ArticuloServiceImpl implements ArticuloService {
 
     private final ArticuloRepository articuloRepository;
     private final CategoriaRepository categoriaRepository;
+    private final TipoEnvaseRepository tipoEnvaseRepository;
 
     public ArticuloServiceImpl(ArticuloRepository articuloRepository,
-                               CategoriaRepository categoriaRepository) {
+                               CategoriaRepository categoriaRepository,
+                               TipoEnvaseRepository tipoEnvaseRepository) {
         this.articuloRepository = articuloRepository;
         this.categoriaRepository = categoriaRepository;
+        this.tipoEnvaseRepository = tipoEnvaseRepository;
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ArticuloResponse> listar() {
         return articuloRepository.findAll()
                 .stream()
@@ -32,14 +39,18 @@ public class ArticuloServiceImpl implements ArticuloService {
     }
 
     @Override
+    @Transactional
     public ArticuloResponse registrar(ArticuloRequest request) {
         Categoria categoria = categoriaRepository.findById(request.getIdCategoria())
                 .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
 
+        TipoEnvase tipoEnvase = tipoEnvaseRepository.findById(request.getIdTipoEnvase())
+                .orElseThrow(() -> new RuntimeException("Tipo de envase no encontrado"));
+
         Articulo articulo = new Articulo();
         articulo.setDescripcion(request.getDescripcion().trim());
         articulo.setMedida(request.getMedida().trim());
-        articulo.setTipoEnvase(request.getTipoEnvase().trim());
+        articulo.setTipoEnvase(tipoEnvase);
         articulo.setStock(request.getStock() == null ? BigDecimal.ZERO : request.getStock());
         articulo.setCategoria(categoria);
         articulo.setEstado(
@@ -53,6 +64,7 @@ public class ArticuloServiceImpl implements ArticuloService {
     }
 
     @Override
+    @Transactional
     public ArticuloResponse actualizar(Integer id, ArticuloRequest request) {
         Articulo articulo = articuloRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Artículo no encontrado"));
@@ -60,9 +72,12 @@ public class ArticuloServiceImpl implements ArticuloService {
         Categoria categoria = categoriaRepository.findById(request.getIdCategoria())
                 .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
 
+        TipoEnvase tipoEnvase = tipoEnvaseRepository.findById(request.getIdTipoEnvase())
+                .orElseThrow(() -> new RuntimeException("Tipo de envase no encontrado"));
+
         articulo.setDescripcion(request.getDescripcion().trim());
         articulo.setMedida(request.getMedida().trim());
-        articulo.setTipoEnvase(request.getTipoEnvase().trim());
+        articulo.setTipoEnvase(tipoEnvase);
         articulo.setStock(request.getStock() == null ? BigDecimal.ZERO : request.getStock());
         articulo.setCategoria(categoria);
         articulo.setEstado(
@@ -76,6 +91,7 @@ public class ArticuloServiceImpl implements ArticuloService {
     }
 
     @Override
+    @Transactional
     public void eliminarLogico(Integer id) {
         Articulo articulo = articuloRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Artículo no encontrado"));
@@ -89,7 +105,10 @@ public class ArticuloServiceImpl implements ArticuloService {
         response.setIdArticulo(articulo.getIdArticulo());
         response.setDescripcion(articulo.getDescripcion());
         response.setMedida(articulo.getMedida());
-        response.setTipoEnvase(articulo.getTipoEnvase());
+        if (articulo.getTipoEnvase() != null) {
+            response.setIdTipoEnvase(articulo.getTipoEnvase().getIdTipoEnvase());
+            response.setTipoEnvase(articulo.getTipoEnvase().getNombre());
+        }
         response.setStock(articulo.getStock());
         response.setIdCategoria(
                 articulo.getCategoria() != null ? articulo.getCategoria().getIdCategoria() : null

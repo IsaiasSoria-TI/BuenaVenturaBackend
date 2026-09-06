@@ -11,10 +11,10 @@ import java.util.List;
 public interface RecepcionRepository extends JpaRepository<Recepcion, Integer> {
 
     @EntityGraph(attributePaths = {"compra", "compra.proveedor"})
-    List<Recepcion> findAllByOrderByFechaRecepcionDesc();
+    List<Recepcion> findByFlgActivoTrueOrderByFechaRecepcionDesc();
 
     @EntityGraph(attributePaths = {"compra", "compra.proveedor"})
-    List<Recepcion> findByCompra_IdComprasOrderByFechaRecepcionAsc(Integer idCompras);
+    List<Recepcion> findByCompra_IdComprasAndFlgActivoTrueOrderByFechaRecepcionAsc(Integer idCompras);
 
     List<Recepcion> findByIdRecepcionesIn(List<Integer> idsRecepciones);
 
@@ -23,6 +23,7 @@ public interface RecepcionRepository extends JpaRepository<Recepcion, Integer> {
             SELECT r
             FROM Recepcion r
             WHERE r.compra.idCompras = :idCompras
+              AND r.flgActivo = true
             ORDER BY r.fechaRecepcion ASC
             """)
     List<Recepcion> obtenerPorCompra(@Param("idCompras") Integer idCompras);

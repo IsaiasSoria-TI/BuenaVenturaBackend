@@ -16,6 +16,11 @@ public interface ConsultaStockMovimientoRepository extends JpaRepository<Consult
             Integer idArticulo
     );
 
+    List<ConsultaStockMovimiento> findByReferenciaTipoAndReferenciaIdAndFlgActivoTrue(
+            String referenciaTipo,
+            Long referenciaId
+    );
+
     @Query("""
             SELECT m
             FROM ConsultaStockMovimiento m

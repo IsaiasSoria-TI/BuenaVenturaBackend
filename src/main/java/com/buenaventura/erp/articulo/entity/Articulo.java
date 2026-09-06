@@ -1,6 +1,7 @@
 package com.buenaventura.erp.articulo.entity;
 
 import com.buenaventura.erp.categoria.entity.Categoria;
+import com.buenaventura.erp.inventario.tipoenvase.entity.TipoEnvase;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -20,8 +21,9 @@ public class Articulo {
     @Column(name = "Medida", nullable = false, length = 50)
     private String medida;
 
-    @Column(name = "TipoEnvase", nullable = false, length = 50)
-    private String tipoEnvase;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "IdTipoEnvase", nullable = false)
+    private TipoEnvase tipoEnvase;
 
     @Column(name = "Stock", nullable = false, precision = 10, scale = 2)
     private BigDecimal stock;
@@ -60,11 +62,11 @@ public class Articulo {
         this.medida = medida;
     }
 
-    public String getTipoEnvase() {
+    public TipoEnvase getTipoEnvase() {
         return tipoEnvase;
     }
 
-    public void setTipoEnvase(String tipoEnvase) {
+    public void setTipoEnvase(TipoEnvase tipoEnvase) {
         this.tipoEnvase = tipoEnvase;
     }
 

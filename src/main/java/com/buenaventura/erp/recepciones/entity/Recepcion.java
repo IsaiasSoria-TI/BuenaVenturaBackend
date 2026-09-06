@@ -37,6 +37,15 @@ public class Recepcion {
     @Column(name = "Estado", nullable = false, length = 20)
     private String estado;
 
+    @Column(name = "FlgActivo")
+    private Boolean flgActivo;
+
+    @Column(name = "FechaCreacion", insertable = false, updatable = false)
+    private LocalDateTime fechaCreacion;
+
+    @Column(name = "FechaActualizacion")
+    private LocalDateTime fechaActualizacion;
+
     public Recepcion() {
     }
 
@@ -102,5 +111,25 @@ public class Recepcion {
 
     public void setEstado(String estado) {
         this.estado = estado;
+    }
+
+    public Boolean getFlgActivo() {
+        return flgActivo;
+    }
+
+    public void setFlgActivo(Boolean flgActivo) {
+        this.flgActivo = flgActivo;
+    }
+
+    public LocalDateTime getFechaCreacion() {
+        return fechaCreacion;
+    }
+
+    public LocalDateTime getFechaActualizacion() {
+        return fechaActualizacion;
+    }
+
+    public void setFechaActualizacion(LocalDateTime fechaActualizacion) {
+        this.fechaActualizacion = fechaActualizacion;
     }
 }

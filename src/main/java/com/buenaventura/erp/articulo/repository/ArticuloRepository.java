@@ -9,6 +9,6 @@ import java.util.List;
 public interface ArticuloRepository extends JpaRepository<Articulo, Integer> {
 
     @Override
-    @EntityGraph(attributePaths = {"categoria"})
+    @EntityGraph(attributePaths = {"categoria", "tipoEnvase"})
     List<Articulo> findAll();
 }
